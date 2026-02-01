@@ -4,7 +4,7 @@ import type { FiatToSatsResult } from "../tools/lightning/fiat_to_sats.js";
 import type { SatsToFiatResult } from "../tools/lightning/sats_to_fiat.js";
 import type { ParseInvoiceResult } from "../tools/lightning/parse_invoice.js";
 import type { VerifyPreimageResult } from "../tools/lightning/verify_preimage.js";
-import type { RequestInvoiceResult } from "../tools/lightning/request_invoice.js";
+import type { RequestInvoiceFromLightningAddressResult } from "../tools/lightning/request_invoice_from_lightning_address.js";
 import type { MakeInvoiceResult } from "../tools/nwc/make_invoice.js";
 
 const exampleInvoice =
@@ -49,9 +49,9 @@ describe("Lightning Tools (no wallet required)", () => {
     expect(result.output.valid).toBe(false);
   });
 
-  test("request-invoice requests invoice from lightning address", async () => {
-    const result = runCli<RequestInvoiceResult>(
-      `request-invoice -a "${exampleLightningAddress}" -s 100`,
+  test("request-invoice-from-lightning-address requests invoice from lightning address", async () => {
+    const result = runCli<RequestInvoiceFromLightningAddressResult>(
+      `request-invoice-from-lightning-address -a "${exampleLightningAddress}" -s 100`,
     );
     expect(result.success).toBe(true);
     expect(result.output.paymentRequest.toLowerCase()).toMatch(/^lnbc/);

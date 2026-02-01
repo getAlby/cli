@@ -19,7 +19,7 @@ import { registerFiatToSatsCommand } from "./commands/fiat-to-sats.js";
 import { registerSatsToFiatCommand } from "./commands/sats-to-fiat.js";
 import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
-import { registerRequestInvoiceCommand } from "./commands/request-invoice.js";
+import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetchL402Command } from "./commands/fetch-l402.js";
 
 const program = new Command();
@@ -52,7 +52,7 @@ registerFiatToSatsCommand(program);
 registerSatsToFiatCommand(program);
 registerParseInvoiceCommand(program);
 registerVerifyPreimageCommand(program);
-registerRequestInvoiceCommand(program);
+registerRequestInvoiceFromLightningAddressCommand(program);
 registerFetchL402Command(program);
 
 program.parse();

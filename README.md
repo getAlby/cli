@@ -48,14 +48,41 @@ npx @getalby/cli -c "nostr+walletconnect://..." make-invoice --amount 1000 --des
 # Pay an invoice
 npx @getalby/cli -c "nostr+walletconnect://..." pay-invoice --invoice "lnbc..."
 
+# Send a keysend payment
+npx @getalby/cli -c "nostr+walletconnect://..." pay-keysend --pubkey "02abc..." --amount 100
+
 # Look up an invoice by payment hash
 npx @getalby/cli -c "nostr+walletconnect://..." lookup-invoice --payment-hash "abc123..."
 
 # List transactions
 npx @getalby/cli -c "nostr+walletconnect://..." list-transactions --limit 10
 
+# Get wallet budget
+npx @getalby/cli -c "nostr+walletconnect://..." get-budget
+
+# Sign a message
+npx @getalby/cli -c "nostr+walletconnect://..." sign-message --message "Hello, World!"
+
 # Fetch L402-protected resource
 npx @getalby/cli -c "nostr+walletconnect://..." fetch-l402 --url "https://example.com/api"
+
+# Wait for a payment notification
+npx @getalby/cli -c "nostr+walletconnect://..." wait-for-payment --payment-hash "abc123..."
+```
+
+### HOLD Invoices
+
+HOLD invoices allow you to accept payments conditionally - the payment is held until you settle or cancel it.
+
+```bash
+# Create a HOLD invoice (you provide the payment hash)
+npx @getalby/cli -c "nostr+walletconnect://..." make-hold-invoice --amount 1000 --payment-hash "abc123..."
+
+# Settle a HOLD invoice (claim the payment)
+npx @getalby/cli -c "nostr+walletconnect://..." settle-hold-invoice --preimage "def456..."
+
+# Cancel a HOLD invoice (reject the payment)
+npx @getalby/cli -c "nostr+walletconnect://..." cancel-hold-invoice --payment-hash "abc123..."
 ```
 
 ### Lightning Tools
@@ -66,28 +93,61 @@ These commands don't require a wallet connection:
 # Convert USD to sats
 npx @getalby/cli fiat-to-sats --currency USD --amount 10
 
+# Convert sats to USD
+npx @getalby/cli sats-to-fiat --amount 1000 --currency USD
+
 # Parse a BOLT-11 invoice
 npx @getalby/cli parse-invoice --invoice "lnbc..."
 
+# Verify a preimage against an invoice
+npx @getalby/cli verify-preimage --invoice "lnbc..." --preimage "abc123..."
+
 # Request invoice from lightning address
-npx @getalby/cli request-invoice --address "hello@getalby.com" --amount 1000
+npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby.com" --amount 1000
 ```
 
 ## Command Reference
+
+### Wallet Commands
+
+These require `--connection-secret`:
 
 | Command | Description | Required Options |
 |---------|-------------|------------------|
 | `get-balance` | Get wallet balance | - |
 | `get-info` | Get wallet info | - |
 | `get-wallet-service-info` | Get wallet capabilities | - |
+| `get-budget` | Get wallet budget | - |
 | `make-invoice` | Create a lightning invoice | `--amount` |
 | `pay-invoice` | Pay a lightning invoice | `--invoice` |
+| `pay-keysend` | Send a keysend payment | `--pubkey`, `--amount` |
 | `lookup-invoice` | Look up an invoice | `--payment-hash` or `--invoice` |
 | `list-transactions` | List transactions | - |
-| `fiat-to-sats` | Convert fiat to sats | `--currency`, `--amount` |
-| `parse-invoice` | Parse a BOLT-11 invoice | `--invoice` |
-| `request-invoice` | Request invoice from lightning address | `--address`, `--amount` |
+| `sign-message` | Sign a message with wallet key | `--message` |
+| `wait-for-payment` | Wait for payment notification | `--payment-hash` |
 | `fetch-l402` | Fetch L402-protected resource | `--url` |
+
+### HOLD Invoice Commands
+
+These require `--connection-secret`:
+
+| Command | Description | Required Options |
+|---------|-------------|------------------|
+| `make-hold-invoice` | Create a HOLD invoice | `--amount`, `--payment-hash` |
+| `settle-hold-invoice` | Settle a HOLD invoice | `--preimage` |
+| `cancel-hold-invoice` | Cancel a HOLD invoice | `--payment-hash` |
+
+### Lightning Tools
+
+These don't require a wallet connection:
+
+| Command | Description | Required Options |
+|---------|-------------|------------------|
+| `fiat-to-sats` | Convert fiat to sats | `--currency`, `--amount` |
+| `sats-to-fiat` | Convert sats to fiat | `--amount`, `--currency` |
+| `parse-invoice` | Parse a BOLT-11 invoice | `--invoice` |
+| `verify-preimage` | Verify preimage against invoice | `--invoice`, `--preimage` |
+| `request-invoice-from-lightning-address` | Request invoice from lightning address | `--address`, `--amount` |
 
 ## Output
 

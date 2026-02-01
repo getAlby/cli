@@ -1,21 +1,21 @@
 import { LightningAddress } from "@getalby/lightning-tools";
 
-export interface RequestInvoiceParams {
+export interface RequestInvoiceFromLightningAddressParams {
   lightning_address: string;
   amount_in_sats: number;
   comment?: string;
   payer_data?: Record<string, unknown>;
 }
 
-export interface RequestInvoiceResult {
+export interface RequestInvoiceFromLightningAddressResult {
   paymentRequest: string;
   paymentHash: string;
   amount_in_sats: number;
 }
 
-export async function requestInvoice(
-  params: RequestInvoiceParams
-): Promise<RequestInvoiceResult> {
+export async function requestInvoiceFromLightningAddress(
+  params: RequestInvoiceFromLightningAddressParams
+): Promise<RequestInvoiceFromLightningAddressResult> {
   const ln = new LightningAddress(params.lightning_address);
 
   await ln.fetch();
