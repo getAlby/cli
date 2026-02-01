@@ -1,0 +1,47 @@
+{
+  "name": "@getalby/cli",
+  "description": "CLI for Nostr Wallet Connect (NIP-47) with a few additional useful lightning tools",
+  "repository": "https://github.com/getAlby/cli.git",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "build/index.js",
+  "bin": {
+    "cli": "build/index.js",
+    "alby-cli": "build/index.js"
+  },
+  "files": [
+    "build/**/*"
+  ],
+  "scripts": {
+    "prepack": "yarn build",
+    "build": "tsc && chmod 755 build/index.js",
+    "start": "node build/index.js",
+    "dev": "yarn build && node build/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "lightning",
+    "nostr",
+    "wallet",
+    "connect",
+    "nwc",
+    "ai",
+    "agent",
+    "cli",
+    "nip47"
+  ],
+  "author": "Alby contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@getalby/lightning-tools": "^6.1.0",
+    "@getalby/sdk": "^7.0.0",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "@webbtc/webln-types": "^3.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
