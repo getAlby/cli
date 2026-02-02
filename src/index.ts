@@ -27,10 +27,10 @@ const program = new Command();
 program
   .name("alby-cli")
   .description("CLI for Nostr Wallet Connect (NIP-47) with lightning tools")
-  .version("0.0.0")
+  .version("0.1.0")
   .option(
     "-c, --connection-secret <string>",
-    "NWC connection secret (nostr+walletconnect://...)"
+    "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
   );
 
 // Register all commands

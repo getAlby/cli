@@ -5,10 +5,14 @@ CLI for Nostr Wallet Connect (NIP-47) with lightning tools.
 ## Usage
 
 ```bash
-npx @getalby/cli --connection-secret <NWC_CONNECTION_STRING> <command> [options]
+# Pass a file path to a connection secret (preferred)
+npx @getalby/cli -c /path/to/secret.txt <command> [options]
+
+# Or pass connection string directly
+npx @getalby/cli -c "nostr+walletconnect://..." <command> [options]
 ```
 
-The `--connection-secret` (or `-c`) option is required for wallet operations. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
+The `-c` option auto-detects whether you're passing a connection string or a file path. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
 
 ## Testing Wallet
 
@@ -110,44 +114,44 @@ npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby
 
 ### Wallet Commands
 
-These require `--connection-secret`:
+These require `-c` or `--connection-secret`:
 
-| Command | Description | Required Options |
-|---------|-------------|------------------|
-| `get-balance` | Get wallet balance | - |
-| `get-info` | Get wallet info | - |
-| `get-wallet-service-info` | Get wallet capabilities | - |
-| `get-budget` | Get wallet budget | - |
-| `make-invoice` | Create a lightning invoice | `--amount` |
-| `pay-invoice` | Pay a lightning invoice | `--invoice` |
-| `pay-keysend` | Send a keysend payment | `--pubkey`, `--amount` |
-| `lookup-invoice` | Look up an invoice | `--payment-hash` or `--invoice` |
-| `list-transactions` | List transactions | - |
-| `sign-message` | Sign a message with wallet key | `--message` |
-| `wait-for-payment` | Wait for payment notification | `--payment-hash` |
-| `fetch-l402` | Fetch L402-protected resource | `--url` |
+| Command                   | Description                    | Required Options                |
+| ------------------------- | ------------------------------ | ------------------------------- |
+| `get-balance`             | Get wallet balance             | -                               |
+| `get-info`                | Get wallet info                | -                               |
+| `get-wallet-service-info` | Get wallet capabilities        | -                               |
+| `get-budget`              | Get wallet budget              | -                               |
+| `make-invoice`            | Create a lightning invoice     | `--amount`                      |
+| `pay-invoice`             | Pay a lightning invoice        | `--invoice`                     |
+| `pay-keysend`             | Send a keysend payment         | `--pubkey`, `--amount`          |
+| `lookup-invoice`          | Look up an invoice             | `--payment-hash` or `--invoice` |
+| `list-transactions`       | List transactions              | -                               |
+| `sign-message`            | Sign a message with wallet key | `--message`                     |
+| `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
+| `fetch-l402`              | Fetch L402-protected resource  | `--url`                         |
 
 ### HOLD Invoice Commands
 
-These require `--connection-secret`:
+These require `-c` or `--connection-secret`:
 
-| Command | Description | Required Options |
-|---------|-------------|------------------|
-| `make-hold-invoice` | Create a HOLD invoice | `--amount`, `--payment-hash` |
-| `settle-hold-invoice` | Settle a HOLD invoice | `--preimage` |
-| `cancel-hold-invoice` | Cancel a HOLD invoice | `--payment-hash` |
+| Command               | Description           | Required Options             |
+| --------------------- | --------------------- | ---------------------------- |
+| `make-hold-invoice`   | Create a HOLD invoice | `--amount`, `--payment-hash` |
+| `settle-hold-invoice` | Settle a HOLD invoice | `--preimage`                 |
+| `cancel-hold-invoice` | Cancel a HOLD invoice | `--payment-hash`             |
 
 ### Lightning Tools
 
 These don't require a wallet connection:
 
-| Command | Description | Required Options |
-|---------|-------------|------------------|
-| `fiat-to-sats` | Convert fiat to sats | `--currency`, `--amount` |
-| `sats-to-fiat` | Convert sats to fiat | `--amount`, `--currency` |
-| `parse-invoice` | Parse a BOLT-11 invoice | `--invoice` |
-| `verify-preimage` | Verify preimage against invoice | `--invoice`, `--preimage` |
-| `request-invoice-from-lightning-address` | Request invoice from lightning address | `--address`, `--amount` |
+| Command                                  | Description                            | Required Options          |
+| ---------------------------------------- | -------------------------------------- | ------------------------- |
+| `fiat-to-sats`                           | Convert fiat to sats                   | `--currency`, `--amount`  |
+| `sats-to-fiat`                           | Convert sats to fiat                   | `--amount`, `--currency`  |
+| `parse-invoice`                          | Parse a BOLT-11 invoice                | `--invoice`               |
+| `verify-preimage`                        | Verify preimage against invoice        | `--invoice`, `--preimage` |
+| `request-invoice-from-lightning-address` | Request invoice from lightning address | `--address`, `--amount`   |
 
 ## Output
 
