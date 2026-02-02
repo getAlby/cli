@@ -2,6 +2,8 @@
 
 CLI for Nostr Wallet Connect (NIP-47) with lightning tools.
 
+Built for agents - use with the [Alby Bitcoin Payments CLI Skill](https://github.com/getAlby/alby-cli-skill)
+
 ## Usage
 
 ```bash
