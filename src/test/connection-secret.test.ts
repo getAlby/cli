@@ -63,4 +63,34 @@ describe("Connection Secret Handling", () => {
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("Invalid connection secret");
   });
+
+  test("reads connection secret from NWC_URL environment variable", () => {
+    const result = runCli("get-balance", { NWC_URL: wallet.nwcUrl });
+    expect(result.success).toBe(true);
+  });
+
+  test("reads connection secret from NWC_SECRET environment variable", () => {
+    const result = runCli("get-balance", { NWC_SECRET: wallet.nwcUrl });
+    expect(result.success).toBe(true);
+  });
+
+  test("prefers NWC_URL over NWC_SECRET when both are set", () => {
+    const result = runCli("get-balance", {
+      NWC_URL: wallet.nwcUrl,
+      NWC_SECRET: "nostr+walletconnect://invalid"
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("reads file path from NWC_URL environment variable", () => {
+    const result = runCli("get-balance", { NWC_URL: secretFilePath });
+    expect(result.success).toBe(true);
+  });
+
+  test("command line argument takes precedence over environment variables", () => {
+    const result = runCli(`-c "${wallet.nwcUrl}" get-balance`, {
+      NWC_URL: "nostr+walletconnect://invalid"
+    });
+    expect(result.success).toBe(true);
+  });
 });
