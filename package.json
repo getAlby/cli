@@ -17,7 +17,7 @@
     "build": "tsc && chmod 755 build/index.js",
     "start": "node build/index.js",
     "dev": "yarn build && node build/index.js",
-    "test": "vitest run",
+    "test": "npm run build && vitest run",
     "test:watch": "vitest"
   },
   "keywords": [

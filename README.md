@@ -16,6 +16,12 @@ npx @getalby/cli -c "nostr+walletconnect://..." <command> [options]
 
 The `-c` option auto-detects whether you're passing a connection string or a file path. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
 
+You can also pass a connection string via the `NWC_URL` environment variable instead of using the `-c` option:
+
+```txt
+NWC_URL="nostr+walletconnect://..."
+```
+
 ## Testing Wallet
 
 For testing the CLI without using real funds, you can create a test wallet using the [NWC Faucet](https://faucet.nwc.dev):

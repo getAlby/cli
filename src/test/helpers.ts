@@ -57,11 +57,12 @@ export interface CliResult<T> {
   output: T;
 }
 
-export function runCli<T>(args: string): CliResult<T> {
+export function runCli<T>(args: string, env?: Record<string, string>): CliResult<T> {
   try {
     const result = execSync(`node build/index.js ${args}`, {
       encoding: "utf-8",
       cwd: process.cwd(),
+      env: env ? { ...process.env, ...env } : process.env,
     });
     return { success: true, output: JSON.parse(result) };
   } catch (error) {

@@ -6,6 +6,11 @@ export function getClient(program: Command): NWCClient {
   const opts = program.opts();
   let connectionSecret: string | undefined = opts.connectionSecret;
 
+  // Check environment variables if --connection-secret not provided
+  if (!connectionSecret) {
+    connectionSecret = process.env.NWC_URL;
+  }
+
   if (!connectionSecret) {
     console.error("Error: --connection-secret is required for this command");
     process.exit(1);
