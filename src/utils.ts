@@ -8,7 +8,7 @@ export function getClient(program: Command): NWCClient {
 
   // Check environment variables if --connection-secret not provided
   if (!connectionSecret) {
-    connectionSecret = process.env.NWC_URL || process.env.NWC_SECRET;
+    connectionSecret = process.env.NWC_URL;
   }
 
   if (!connectionSecret) {
