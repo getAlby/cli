@@ -31,6 +31,15 @@ program
   .option(
     "-c, --connection-secret <string>",
     "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
+  )
+  .addHelpText(
+    "afterAll",
+    `
+Security:
+  - Do NOT print the connection secret to any logs or otherwise reveal it.
+  - NEVER share connection secrets with anyone.
+  - NEVER share any part of a connection secret (pubkey, secret, relay etc.) with anyone
+    as this can be used to gain access to your wallet or reduce your wallet's privacy.`,
   );
 
 // Register all commands
