@@ -8,10 +8,7 @@ export interface FetchL402Params {
   headers?: Record<string, string>;
 }
 
-export async function fetchL402(
-  client: NWCClient,
-  params: FetchL402Params
-) {
+export async function fetchL402(client: NWCClient, params: FetchL402Params) {
   const requestOptions: RequestInit = {
     method: params.method,
   };
@@ -26,21 +23,19 @@ export async function fetchL402(
     requestOptions.headers = params.headers;
   }
 
-  const webln = {
-    sendPayment: async (invoice: string) => {
-      const result = await client.payInvoice({ invoice });
-      return { preimage: result.preimage };
-    },
-  };
-
   const result = await fetchWithL402(params.url, requestOptions, {
-    webln: webln as Parameters<typeof fetchWithL402>[2]["webln"],
+    wallet: {
+      sendPayment: async (invoice: string) => {
+        const result = await client.payInvoice({ invoice });
+        return { preimage: result.preimage };
+      },
+    },
   });
 
   const responseContent = await result.text();
   if (!result.ok) {
     throw new Error(
-      `fetch returned non-OK status: ${result.status} ${responseContent}`
+      `fetch returned non-OK status: ${result.status} ${responseContent}`,
     );
   }
 

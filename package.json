@@ -2,7 +2,7 @@
   "name": "@getalby/cli",
   "description": "CLI for Nostr Wallet Connect (NIP-47) with a few additional useful lightning tools",
   "repository": "https://github.com/getAlby/cli.git",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "main": "build/index.js",
   "bin": {
@@ -34,7 +34,7 @@
   "author": "Alby contributors",
   "license": "MIT",
   "dependencies": {
-    "@getalby/lightning-tools": "^6.1.0",
+    "@getalby/lightning-tools": "^7.0.2",
     "@getalby/sdk": "^7.0.0",
     "commander": "^13.1.0"
   },
