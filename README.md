@@ -80,6 +80,9 @@ npx @getalby/cli -c "nostr+walletconnect://..." fetch-l402 --url "https://exampl
 
 # Wait for a payment notification
 npx @getalby/cli -c "nostr+walletconnect://..." wait-for-payment --payment-hash "abc123..."
+
+# Subscribe to wallet notifications
+npx @getalby/cli -c "nostr+walletconnect://..." subscribe
 ```
 
 ### HOLD Invoices

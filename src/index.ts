@@ -21,6 +21,7 @@ import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetchL402Command } from "./commands/fetch-l402.js";
+import { registerSubscribeCommand } from "./commands/subscribe.js";
 
 const program = new Command();
 
@@ -63,5 +64,6 @@ registerParseInvoiceCommand(program);
 registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 registerFetchL402Command(program);
+registerSubscribeCommand(program);
 
 program.parse();
