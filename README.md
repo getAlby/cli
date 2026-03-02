@@ -127,20 +127,21 @@ npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby
 
 These require `-c` or `--connection-secret`:
 
-| Command                   | Description                    | Required Options                |
-| ------------------------- | ------------------------------ | ------------------------------- |
-| `get-balance`             | Get wallet balance             | -                               |
-| `get-info`                | Get wallet info                | -                               |
-| `get-wallet-service-info` | Get wallet capabilities        | -                               |
-| `get-budget`              | Get wallet budget              | -                               |
-| `make-invoice`            | Create a lightning invoice     | `--amount`                      |
-| `pay-invoice`             | Pay a lightning invoice        | `--invoice`                     |
-| `pay-keysend`             | Send a keysend payment         | `--pubkey`, `--amount`          |
-| `lookup-invoice`          | Look up an invoice             | `--payment-hash` or `--invoice` |
-| `list-transactions`       | List transactions              | -                               |
-| `sign-message`            | Sign a message with wallet key | `--message`                     |
-| `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
-| `fetch-l402`              | Fetch L402-protected resource  | `--url`                         |
+| Command                   | Description                       | Required Options                |
+| ------------------------- | --------------------------------- | ------------------------------- |
+| `get-balance`             | Get wallet balance                | -                               |
+| `get-info`                | Get wallet info                   | -                               |
+| `get-wallet-service-info` | Get wallet capabilities           | -                               |
+| `get-budget`              | Get wallet budget                 | -                               |
+| `make-invoice`            | Create a lightning invoice        | `--amount`                      |
+| `pay-invoice`             | Pay a lightning invoice           | `--invoice`                     |
+| `pay-keysend`             | Send a keysend payment            | `--pubkey`, `--amount`          |
+| `lookup-invoice`          | Look up an invoice                | `--payment-hash` or `--invoice` |
+| `list-transactions`       | List transactions                 | -                               |
+| `sign-message`            | Sign a message with wallet key    | `--message`                     |
+| `wait-for-payment`        | Wait for payment notification     | `--payment-hash`                |
+| `fetch-l402`              | Fetch L402-protected resource     | `--url`                         |
+| `subscribe`               | Subscribe to wallet notifications | -                               |
 
 ### HOLD Invoice Commands
 

@@ -14,15 +14,27 @@ export function registerSubscribeCommand(program: Command) {
     .action(async (options) => {
       await handleError(async () => {
         const client = getClient(program);
-        console.info("Subscribing to notifications. Press Ctrl+C to stop.");
-        await subscribe(client, (notification) => {
-          output(notification);
-        }, {
-          types: options.type as Nip47NotificationType[] | undefined,
-        });
+        process.stderr.write(
+          "Subscribing to notifications. Press Ctrl+C to stop.\n",
+        );
+        const unsubscribe = await subscribe(
+          client,
+          (notification) => {
+            output(notification);
+          },
+          {
+            types: options.type as Nip47NotificationType[] | undefined,
+          },
+        );
 
-        // Keep the process alive
-        await new Promise(() => {});
+        await new Promise<void>((resolve) => {
+          const stop = () => {
+            unsubscribe();
+            resolve();
+          };
+          process.on("SIGINT", stop);
+          process.on("SIGTERM", stop);
+        });
       });
     });
 }
