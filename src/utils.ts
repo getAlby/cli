@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import { NWCClient } from "@getalby/sdk";
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export function getClient(program: Command): NWCClient {
   const opts = program.opts();
@@ -12,7 +14,22 @@ export function getClient(program: Command): NWCClient {
   }
 
   if (!connectionSecret) {
-    console.error("Error: --connection-secret is required for this command");
+    const defaultPath = join(homedir(), ".alby-cli", "connection-secret.key");
+    try {
+      connectionSecret = readFileSync(defaultPath, "utf-8").trim();
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== "ENOENT") {
+        // only throw an error if it's not a file not found error
+        throw err;
+      }
+    }
+  }
+
+  if (!connectionSecret) {
+    console.error(
+      "Error: No connection secret found. Pass -c <secret>, set NWC_URL, or create ~/.alby-cli/connection-secret.key",
+    );
     process.exit(1);
   }
 
