@@ -17,8 +17,12 @@ export function getClient(program: Command): NWCClient {
     const defaultPath = join(homedir(), ".alby-cli", "connection-secret.key");
     try {
       connectionSecret = readFileSync(defaultPath, "utf-8").trim();
-    } catch {
-      // file doesn't exist or isn't readable; fall through to error
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== "ENOENT") {
+        // only throw an error if it's not a file not found error
+        throw err;
+      }
     }
   }
 
