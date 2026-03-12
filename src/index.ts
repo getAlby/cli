@@ -26,15 +26,27 @@ const program = new Command();
 
 program
   .name("alby-cli")
-  .description("CLI for Nostr Wallet Connect (NIP-47) with lightning tools")
+  .description(
+    "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n\n" +
+      "  Examples:\n" +
+      "    $ alby-cli --connection-secret /path/to/secret.key get-balance\n" +
+      "    $ alby-cli --connection-secret /path/to/secret.key pay-invoice --invoice lnbc...\n" +
+      "    $ alby-cli fiat-to-sats --currency USD --amount 5\n" +
+      "    $ alby-cli pay-invoice --invoice lnbc...",
+  )
   .version("0.2.4")
   .option(
     "-c, --connection-secret <string>",
     "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
   )
   .addHelpText(
-    "afterAll",
+    "after",
     `
+Connection Secret Resolution (in order of priority):
+  1. --connection-secret flag (value or path to file)
+  2. NWC_URL environment variable
+  3. ~/.alby-cli/connection-secret.key (default file location)
+
 Security:
   - Do NOT print the connection secret to any logs or otherwise reveal it.
   - NEVER share connection secrets with anyone.
@@ -42,21 +54,30 @@ Security:
     as this can be used to gain access to your wallet or reduce your wallet's privacy.`,
   );
 
-// Register all commands
+// Register common wallet commands
+program.commandsGroup("Wallet Commands (require --connection-secret):");
 registerGetBalanceCommand(program);
 registerGetBudgetCommand(program);
 registerGetInfoCommand(program);
-registerGetWalletServiceInfoCommand(program);
 registerMakeInvoiceCommand(program);
+registerPayInvoiceCommand(program);
+registerLookupInvoiceCommand(program);
+registerListTransactionsCommand(program);
+
+// Register advanced wallet commands
+program.commandsGroup(
+  "Advanced Wallet Commands (require --connection-secret):",
+);
+registerPayKeysendCommand(program);
+registerGetWalletServiceInfoCommand(program);
+registerWaitForPaymentCommand(program);
+registerSignMessageCommand(program);
 registerMakeHoldInvoiceCommand(program);
 registerSettleHoldInvoiceCommand(program);
 registerCancelHoldInvoiceCommand(program);
-registerPayInvoiceCommand(program);
-registerPayKeysendCommand(program);
-registerLookupInvoiceCommand(program);
-registerListTransactionsCommand(program);
-registerWaitForPaymentCommand(program);
-registerSignMessageCommand(program);
+
+// Register lightning tool commands
+program.commandsGroup("Lightning Tools (no --connection-secret required):");
 registerFiatToSatsCommand(program);
 registerSatsToFiatCommand(program);
 registerParseInvoiceCommand(program);
