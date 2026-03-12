@@ -33,6 +33,9 @@
   ],
   "author": "Alby contributors",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@getalby/lightning-tools": "^7.0.2",
     "@getalby/sdk": "^7.0.0",
