@@ -39,7 +39,7 @@ program
     "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
   )
   .addHelpText(
-    "afterAll",
+    "after",
     `
 Connection Secret Resolution (in order of priority):
   1. --connection-secret flag (value or path to file)
