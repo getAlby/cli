@@ -71,9 +71,6 @@ registerPayKeysendCommand(program);
 registerGetWalletServiceInfoCommand(program);
 registerWaitForPaymentCommand(program);
 registerSignMessageCommand(program);
-
-// Register hold invoice commands
-program.commandsGroup("Hold Invoice Commands (require --connection-secret):");
 registerMakeHoldInvoiceCommand(program);
 registerSettleHoldInvoiceCommand(program);
 registerCancelHoldInvoiceCommand(program);
