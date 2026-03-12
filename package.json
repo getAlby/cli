@@ -36,7 +36,7 @@
   "dependencies": {
     "@getalby/lightning-tools": "^7.0.2",
     "@getalby/sdk": "^7.0.0",
-    "commander": "^13.1.0"
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
