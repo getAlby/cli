@@ -29,7 +29,8 @@ program
   .description(
     "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n\n" +
       "  Examples:\n" +
-      "    $ alby-cli --connection-secret nostr+walletconnect://... get-balance\n" +
+      "    $ alby-cli --connection-secret /path/to/secret.key get-balance\n" +
+      "    $ alby-cli --connection-secret /path/to/secret.key pay-invoice --invoice lnbc...\n" +
       "    $ alby-cli fiat-to-sats --currency USD --amount 5\n" +
       "    $ alby-cli pay-invoice --invoice lnbc...",
   )
