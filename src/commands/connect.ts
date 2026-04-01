@@ -15,12 +15,13 @@ export function registerConnectCommand(program: Command) {
   program
     .command("connect [connection-secret]")
     .description("Connect to a Nostr Wallet Connect wallet")
-    .action(async (connectionSecret: string | undefined) => {
+    .option("--force", "Overwrite existing connection secret")
+    .action(async (connectionSecret: string | undefined, options: { force?: boolean }) => {
       await handleError(async () => {
-        if (existsSync(CONNECTION_SECRET_PATH)) {
+        if (existsSync(CONNECTION_SECRET_PATH) && !options.force) {
           console.error(
             `Error: Already connected. Connection secret exists at ${CONNECTION_SECRET_PATH}\n` +
-              `To reconnect, remove the existing file first.`,
+              `To overwrite, use --force.`,
           );
           process.exit(1);
         }
