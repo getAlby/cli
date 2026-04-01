@@ -22,6 +22,8 @@ import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetchL402Command } from "./commands/fetch-l402.js";
 import { registerFetchX402Command } from "./commands/fetch-x402.js";
+import { registerFetchMppCommand } from "./commands/fetch-mpp.js";
+import { registerFetch402Command } from "./commands/fetch402.js";
 
 const program = new Command();
 
@@ -65,5 +67,7 @@ registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 registerFetchL402Command(program);
 registerFetchX402Command(program);
+registerFetchMppCommand(program);
+registerFetch402Command(program);
 
 program.parse();
