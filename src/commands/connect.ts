@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { handleError } from "../utils.js";
+import { getInfo } from "../tools/nwc/get_info.js";
 
 const CONNECTION_SECRET_PATH = join(
   homedir(),
@@ -68,6 +69,10 @@ export function registerConnectCommand(program: Command) {
           );
           process.exit(1);
         }
+
+        console.log("Testing connection...");
+        const info = await getInfo(client);
+        console.log(`Connected to ${info.alias || "wallet"} (${info.network || "unknown network"})`);
 
         const dir = join(homedir(), ".alby-cli");
         if (!existsSync(dir)) {
