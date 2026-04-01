@@ -23,6 +23,7 @@ import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/re
 import { registerFetch402Command } from "./commands/fetch.js";
 import { registerConnectCommand } from "./commands/connect.js";
 import { registerAuthCommand } from "./commands/auth.js";
+import { registerDiscoverCommand } from "./commands/discover.js";
 
 const program = new Command();
 
@@ -95,6 +96,7 @@ registerRequestInvoiceFromLightningAddressCommand(program);
 // Register fetch command for payment-protected resources
 program.commandsGroup("HTTP 402 Payments (requires wallet connection):");
 registerFetch402Command(program);
+registerDiscoverCommand(program);
 
 // Register setup commands
 program.commandsGroup("Setup:");
