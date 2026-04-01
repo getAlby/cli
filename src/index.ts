@@ -21,6 +21,7 @@ import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetchL402Command } from "./commands/fetch-l402.js";
+import { registerConnectCommand } from "./commands/connect.js";
 
 const program = new Command();
 
@@ -29,6 +30,7 @@ program
   .description(
     "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n\n" +
       "  Examples:\n" +
+      "    $ alby-cli connect nostr+walletconnect://...\n" +
       "    $ alby-cli get-balance\n" +
       "    $ alby-cli pay-invoice --invoice lnbc...",
   )
@@ -47,6 +49,7 @@ Connection Secret Resolution (in order of priority):
 
 Security:
   - Do NOT print the connection secret to any logs or otherwise reveal it.
+  - NEVER read the connection secret file (~/.alby-cli/connection-secret.key) directly.
   - NEVER share connection secrets with anyone.
   - NEVER share any part of a connection secret (pubkey, secret, relay etc.) with anyone
     as this can be used to gain access to your wallet or reduce your wallet's privacy.`,
@@ -82,5 +85,9 @@ registerParseInvoiceCommand(program);
 registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 registerFetchL402Command(program);
+
+// Register setup commands
+program.commandsGroup("Setup:");
+registerConnectCommand(program);
 
 program.parse();
