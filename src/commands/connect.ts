@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { NWCClient } from "@getalby/sdk";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { handleError } from "../utils.js";
@@ -23,7 +23,8 @@ export function registerConnectCommand(program: Command) {
         options: { force?: boolean },
       ) => {
         await handleError(async () => {
-          if (existsSync(CONNECTION_SECRET_PATH) && !options.force) {
+          const alreadyExists = existsSync(CONNECTION_SECRET_PATH);
+          if (alreadyExists && !options.force) {
             console.error(
               `Error: Already connected. Connection secret exists at ${CONNECTION_SECRET_PATH}\n` +
                 `To overwrite, use --force.`,
@@ -87,6 +88,10 @@ export function registerConnectCommand(program: Command) {
           writeFileSync(CONNECTION_SECRET_PATH, connectionSecret, {
             mode: 0o600,
           });
+
+          if (alreadyExists) {
+            chmodSync(CONNECTION_SECRET_PATH, 0o600);
+          }
 
           console.log(`Connection saved to ${CONNECTION_SECRET_PATH}`);
         });
