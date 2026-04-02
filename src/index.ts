@@ -26,13 +26,13 @@ import { registerConnectCommand } from "./commands/connect.js";
 const program = new Command();
 
 program
-  .name("alby-cli")
+  .name("@getalby/cli")
   .description(
     "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n\n" +
       "  Examples:\n" +
-      "    $ alby-cli connect nostr+walletconnect://...\n" +
-      "    $ alby-cli get-balance\n" +
-      "    $ alby-cli pay-invoice --invoice lnbc...",
+      '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
+      "    $ npx @getalby/cli get-balance\n" +
+      "    $ npx @getalby/cli pay-invoice --invoice lnbc...",
   )
   .version("0.2.4")
   .option(
