@@ -6,8 +6,21 @@ Built for agents - use with the [Alby Bitcoin Payments CLI Skill](https://github
 
 ## Usage
 
+### First-time setup
+
+The CLI is an interface to a wallet and therefore needs a connection secret. You can use the `connect` command to save a wallet connection for the CLI to use.
+
 ```bash
-# Pass a file path to a connection secret (preferred)
+npx @getalby/cli connect "nostr+walletconnect://..."
+```
+
+### Using an existing connection secret
+
+```bash
+# Use the default saved wallet connection (preferred)
+npx @getalby/cli <command> [options]
+
+# Pass a file path to a connection secret
 npx @getalby/cli -c /path/to/secret.txt <command> [options]
 
 # Or pass connection string directly
