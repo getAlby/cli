@@ -58,10 +58,18 @@ export function registerAuthCommand(program: Command) {
         "  Step 1: npx @getalby/cli auth https://my.albyhub.com --app-name MyApp\n" +
         "  Step 2: npx @getalby/cli auth --complete",
     )
-    .option("--app-name <name>", "Name of the agent or app that will use this wallet (e.g. \"Claude Code\")")
+    .option(
+      "--app-name <name>",
+      'Name of the agent or app that will use this wallet (e.g. "Claude Code")',
+    )
     .option(
       "--complete",
       "Complete a pending connection after human approves it in the wallet",
+    )
+    .option(
+      "--relay-url <url>",
+      "Relay URL to use with --complete",
+      "wss://relay.getalby.com/v1",
     )
     .option("--force", "Overwrite existing connection secret")
     .option(
@@ -76,6 +84,7 @@ export function registerAuthCommand(program: Command) {
           complete?: boolean;
           force?: boolean;
           walletName?: string;
+          relayUrl: string;
         },
       ) => {
         await handleError(async () => {
@@ -100,7 +109,7 @@ export function registerAuthCommand(program: Command) {
 
             const nwaClient = new NWAClient({
               appSecretKey: secret,
-              relayUrls: ["wss://relay.getalby.com/v1"],
+              relayUrls: [options.relayUrl],
               requestMethods: [],
             });
 
