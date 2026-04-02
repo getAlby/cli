@@ -6,27 +6,30 @@ import { join } from "node:path";
 import { handleError } from "../utils.js";
 import { getInfo } from "../tools/nwc/get_info.js";
 
-const CONNECTION_SECRET_PATH = join(
-  homedir(),
-  ".alby-cli",
-  "connection-secret.key",
-);
+export function getConnectionSecretPath(name?: string) {
+  const filename = name
+    ? `connection-secret-${name}.key`
+    : "connection-secret.key";
+  return join(homedir(), ".alby-cli", filename);
+}
 
 export function registerConnectCommand(program: Command) {
   program
     .command('connect "[connection-secret]"')
     .description("Connect to a Nostr Wallet Connect wallet")
     .option("--force", "Overwrite existing connection secret")
+    .option("--wallet-name <name>", "Save as a named connection instead of the default")
     .action(
       async (
         connectionSecret: string | undefined,
-        options: { force?: boolean },
+        options: { force?: boolean; walletName?: string },
       ) => {
         await handleError(async () => {
-          const alreadyExists = existsSync(CONNECTION_SECRET_PATH);
+          const connectionSecretPath = getConnectionSecretPath(options.walletName);
+          const alreadyExists = existsSync(connectionSecretPath);
           if (alreadyExists && !options.force) {
             console.error(
-              `Error: Already connected. Connection secret exists at ${CONNECTION_SECRET_PATH}\n` +
+              `Error: Already connected. Connection secret exists at ${connectionSecretPath}\n` +
                 `To overwrite, use --force.`,
             );
             process.exit(1);
@@ -85,15 +88,15 @@ export function registerConnectCommand(program: Command) {
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }
-          writeFileSync(CONNECTION_SECRET_PATH, connectionSecret, {
+          writeFileSync(connectionSecretPath, connectionSecret, {
             mode: 0o600,
           });
 
           if (alreadyExists) {
-            chmodSync(CONNECTION_SECRET_PATH, 0o600);
+            chmodSync(connectionSecretPath, 0o600);
           }
 
-          console.log(`Connection saved to ${CONNECTION_SECRET_PATH}`);
+          console.log(`Connection saved to ${connectionSecretPath}`);
         });
       },
     );
