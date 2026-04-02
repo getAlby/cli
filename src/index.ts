@@ -22,6 +22,7 @@ import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetchL402Command } from "./commands/fetch-l402.js";
 import { registerConnectCommand } from "./commands/connect.js";
+import { registerAuthCommand } from "./commands/auth.js";
 
 const program = new Command();
 
@@ -88,6 +89,7 @@ registerFetchL402Command(program);
 
 // Register setup commands
 program.commandsGroup("Setup:");
+registerAuthCommand(program);
 registerConnectCommand(program);
 
 program.parse();

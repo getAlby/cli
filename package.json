@@ -6,8 +6,7 @@
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "cli": "build/index.js",
-    "alby-cli": "build/index.js"
+    "cli": "build/index.js"
   },
   "files": [
     "build/**/*"
@@ -39,7 +38,9 @@
   "dependencies": {
     "@getalby/lightning-tools": "^7.0.2",
     "@getalby/sdk": "^7.0.0",
-    "commander": "^14.0.3"
+    "@noble/hashes": "^2.0.1",
+    "commander": "^14.0.3",
+    "nostr-tools": "^2.23.3"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",

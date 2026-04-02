@@ -8,7 +8,20 @@ Built for agents - use with the [Alby Bitcoin Payments CLI Skill](https://github
 
 ### First-time setup
 
-The CLI is an interface to a wallet and therefore needs a connection secret. You can use the `connect` command to save a wallet connection for the CLI to use.
+The CLI is an interface to a wallet and therefore needs a connection secret.
+
+**Option 1: `auth` — for wallets that support it (e.g. Alby Hub)**
+
+```bash
+# Step 1: generate a connection URL and open it in your wallet to approve
+# --app-name is the name of the agent/app that will use the wallet via the CLI (e.g. "Claude Code", "OpenClaw")
+npx @getalby/cli auth https://my.albyhub.com --app-name "Claude Code"
+
+# Step 2: after approving in the wallet, complete the connection
+npx @getalby/cli auth --complete
+```
+
+**Option 2: `connect` — paste a NWC connection secret directly**
 
 ```bash
 npx @getalby/cli connect "nostr+walletconnect://..."
