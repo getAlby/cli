@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  completePendingConnection,
   getConnectionSecretPath,
+  getPendingConnectionRelayPath,
   getPendingConnectionSecretPath,
   handleError,
   saveConnectionSecret,
@@ -16,7 +16,7 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 
 export function registerAuthCommand(program: Command) {
   program
-    .command("auth [wallet-url]")
+    .command("auth <wallet-url>")
     .description(
       "Securely connect a wallet with human confirmation via the browser\n\n" +
         "  Step 1: npx @getalby/cli auth https://my.albyhub.com --app-name MyApp\n" +
@@ -35,7 +35,7 @@ export function registerAuthCommand(program: Command) {
     .option("--remove-pending", "Remove a pending connection and start fresh")
     .action(
       async (
-        walletUrl: string | undefined,
+        walletUrl: string,
         options: {
           appName?: string;
           force?: boolean;
@@ -48,6 +48,8 @@ export function registerAuthCommand(program: Command) {
           const connectionSecretPath = getConnectionSecretPath(walletName);
           const pendingSecretPath = getPendingConnectionSecretPath(walletName);
 
+          const pendingRelayPath = getPendingConnectionRelayPath(walletName);
+
           // Remove pending connection
           if (options.removePending) {
             if (!existsSync(pendingSecretPath)) {
@@ -58,77 +60,56 @@ export function registerAuthCommand(program: Command) {
               rmSync(pendingSecretPath);
               console.log(`Removed pending connection at ${pendingSecretPath}`);
             }
+            if (existsSync(pendingRelayPath)) {
+              rmSync(pendingRelayPath);
+            }
             return;
           }
 
-          // Step 1: generate auth URL
-          if (walletUrl) {
-            if (!options.appName) {
-              console.error(
-                `Error: No app name provided.\n` +
-                  `Add --app-name <name> to identify the app in the wallet.`,
-              );
-              process.exit(1);
-            }
-
-            if (existsSync(connectionSecretPath) && !options.force) {
-              console.error(
-                `Error: Already connected. Connection secret exists at ${connectionSecretPath}\n` +
-                  `To overwrite, use --force.`,
-              );
-              process.exit(1);
-            }
-
-            const secret = bytesToHex(generateSecretKey());
-            const pubkey = getPublicKey(hexToBytes(secret));
-
-            const authUrl = NWCClient.getAuthorizationUrl(
-              `${walletUrl}/apps/new`,
-              { name: options.appName },
-              pubkey,
-            ).toString();
-
-            const dir = join(homedir(), ".alby-cli");
-            if (!existsSync(dir)) {
-              mkdirSync(dir, { recursive: true });
-            }
-            writeFileSync(pendingSecretPath, secret, { mode: 0o600 });
-
-            console.log(
-              "Click the following URL to approve the connection in your wallet:\n" +
-                authUrl,
+          // Generate auth URL
+          if (!options.appName) {
+            console.error(
+              `Error: No app name provided.\n` +
+                `Add --app-name <name> to identify the app in the wallet.`,
             );
-
-            const retryCmd = walletName
-              ? `npx @getalby/cli get-balance --wallet-name ${walletName}`
-              : `npx @getalby/cli get-balance`;
-            console.log(
-              `\nOnce approved, run any command, e.g.:\n  ${retryCmd}`,
-            );
-
-            return;
+            process.exit(1);
           }
 
-          // Auto-complete: no wallet URL provided, check for pending connection
-          if (existsSync(pendingSecretPath)) {
-            console.log(
-              "Pending connection found. Waiting for wallet approval...",
+          if (existsSync(connectionSecretPath) && !options.force) {
+            console.error(
+              `Error: Already connected. Connection secret exists at ${connectionSecretPath}\n` +
+                `To overwrite, use --force.`,
             );
-            const nwcClient = await completePendingConnection(
-              pendingSecretPath,
-              connectionSecretPath,
-              options.relayUrl,
-              program.opts().verbose,
-            );
-            await testAndLogConnection(nwcClient);
-            return;
+            process.exit(1);
           }
 
-          console.error(
-            `Usage:\n` +
-              `  npx @getalby/cli auth <wallet-url> --app-name <name>`,
+          const secret = bytesToHex(generateSecretKey());
+          const pubkey = getPublicKey(hexToBytes(secret));
+
+          const authUrl = NWCClient.getAuthorizationUrl(
+            `${walletUrl}/apps/new`,
+            { name: options.appName },
+            pubkey,
+          ).toString();
+
+          const dir = join(homedir(), ".alby-cli");
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          writeFileSync(pendingSecretPath, secret, { mode: 0o600 });
+          writeFileSync(pendingRelayPath, options.relayUrl, { mode: 0o600 });
+
+          console.log(
+            "Click the following URL to approve the connection in your wallet:\n" +
+              authUrl,
           );
-          process.exit(1);
+
+          const retryCmd = walletName
+            ? `npx @getalby/cli get-balance --wallet-name ${walletName}`
+            : `npx @getalby/cli get-balance`;
+          console.log(
+            `\nOnce approved, run any command, e.g.:\n  ${retryCmd}`,
+          );
         });
       },
     );

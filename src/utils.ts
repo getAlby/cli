@@ -26,6 +26,13 @@ export function getPendingConnectionSecretPath(name?: string) {
   return join(homedir(), ".alby-cli", filename);
 }
 
+export function getPendingConnectionRelayPath(name?: string) {
+  const filename = name
+    ? `pending-connection-relay-${name}.txt`
+    : "pending-connection-relay.txt";
+  return join(homedir(), ".alby-cli", filename);
+}
+
 export function saveConnectionSecret(
   path: string,
   secret: string,
@@ -56,14 +63,21 @@ export async function testAndLogConnection(client: NWCClient) {
 export async function completePendingConnection(
   pendingSecretPath: string,
   connectionSecretPath: string,
-  relayUrl: string = "wss://relay.getalby.com/v1",
+  relayUrl: string | undefined,
   verbose: boolean,
+  pendingRelayPath?: string,
 ): Promise<NWCClient> {
   const secret = readFileSync(pendingSecretPath, "utf-8").trim();
 
+  const DEFAULT_RELAY = "wss://relay.getalby.com/v1";
+  if (!relayUrl && pendingRelayPath && existsSync(pendingRelayPath)) {
+    relayUrl = readFileSync(pendingRelayPath, "utf-8").trim();
+  }
+  const resolvedRelay = relayUrl ?? DEFAULT_RELAY;
+
   const nwaClient = new NWAClient({
     appSecretKey: secret,
-    relayUrls: [relayUrl],
+    relayUrls: [resolvedRelay],
     requestMethods: [],
   });
 
@@ -97,6 +111,9 @@ export async function completePendingConnection(
             verbose,
           );
           rmSync(pendingSecretPath);
+          if (pendingRelayPath && existsSync(pendingRelayPath)) {
+            rmSync(pendingRelayPath);
+          }
           resolve(nwcClient);
         },
       })
@@ -131,11 +148,13 @@ export async function getClient(program: Command): Promise<NWCClient> {
     if (opts.verbose) {
       console.error("Pending connection found. Waiting for wallet approval...");
     }
+    const pendingRelayPath = getPendingConnectionRelayPath(walletName);
     return await completePendingConnection(
       pendingPath,
       connectionPath,
       undefined,
       opts.verbose,
+      pendingRelayPath,
     );
   }
 
