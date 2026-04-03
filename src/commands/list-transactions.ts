@@ -14,7 +14,7 @@ export function registerListTransactionsCommand(program: Command) {
     .option("-t, --type <type>", "Filter by type (incoming|outgoing)")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await listTransactions(client, {
           from: options.from,
           until: options.until,

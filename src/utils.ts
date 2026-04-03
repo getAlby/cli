@@ -1,6 +1,14 @@
 import { Command } from "commander";
-import { NWCClient } from "@getalby/sdk";
-import { readFileSync } from "node:fs";
+import { NWAClient, NWCClient } from "@getalby/sdk";
+import { getInfo } from "./tools/nwc/get_info.js";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -11,36 +19,109 @@ export function getConnectionSecretPath(name?: string) {
   return join(homedir(), ".alby-cli", filename);
 }
 
-export function getClient(program: Command): NWCClient {
+export function getPendingConnectionSecretPath(name?: string) {
+  const filename = name
+    ? `pending-connection-secret-${name}.key`
+    : "pending-connection-secret.key";
+  return join(homedir(), ".alby-cli", filename);
+}
+
+export function saveConnectionSecret(path: string, secret: string) {
+  const alreadyExists = existsSync(path);
+  const dir = join(homedir(), ".alby-cli");
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync(path, secret, { mode: 0o600 });
+  if (alreadyExists) {
+    chmodSync(path, 0o600);
+  }
+  console.log(`Connection saved to ${path}`);
+}
+
+export async function testAndLogConnection(client: NWCClient) {
+  console.log("Testing connection...");
+  const info = await getInfo(client);
+  console.log(
+    `Connected to ${info.alias || "wallet"} (${info.network || "unknown network"})`,
+  );
+}
+
+export async function completePendingConnection(
+  pendingSecretPath: string,
+  connectionSecretPath: string,
+  relayUrl: string = "wss://relay.getalby.com/v1",
+): Promise<NWCClient> {
+  const secret = readFileSync(pendingSecretPath, "utf-8").trim();
+
+  const nwaClient = new NWAClient({
+    appSecretKey: secret,
+    relayUrls: [relayUrl],
+    requestMethods: [],
+  });
+
+  return new Promise<NWCClient>((resolve, reject) => {
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      unsub?.();
+      reject(
+        new Error(
+          "Timed out waiting for wallet approval.\n\nTo retry, run the command again.\nTo cancel: npx @getalby/cli auth --remove-pending",
+        ),
+      );
+    }, 5000);
+
+    let unsub: (() => void) | undefined;
+
+    nwaClient
+      .subscribe({
+        onSuccess: async (nwcClient) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          unsub?.();
+
+          saveConnectionSecret(
+            connectionSecretPath,
+            nwcClient.getNostrWalletConnectUrl(),
+          );
+          rmSync(pendingSecretPath);
+          resolve(nwcClient);
+        },
+      })
+      .then(({ unsub: u }) => {
+        unsub = u;
+      });
+  });
+}
+
+export async function getClient(program: Command): Promise<NWCClient> {
   const opts = program.opts();
   let connectionSecret: string | undefined = opts.connectionSecret;
 
-  if (!connectionSecret && opts.walletName) {
-    const namedPath = getConnectionSecretPath(opts.walletName);
-    try {
-      connectionSecret = readFileSync(namedPath, "utf-8").trim();
-    } catch (error) {
-      console.error(
-        `Error: Failed to read connection secret file "${namedPath}": ${error instanceof Error ? error.message : String(error)}`,
-      );
-      process.exit(1);
-    }
-  }
+  const walletName: string | undefined = opts.walletName;
+  const connectionPath = getConnectionSecretPath(walletName);
+  const pendingPath = getPendingConnectionSecretPath(walletName);
 
-  if (!connectionSecret) {
+  if (!connectionSecret && !walletName) {
     connectionSecret = process.env.NWC_URL;
   }
 
   if (!connectionSecret) {
-    const defaultPath = getConnectionSecretPath();
     try {
-      connectionSecret = readFileSync(defaultPath, "utf-8").trim();
+      connectionSecret = readFileSync(connectionPath, "utf-8").trim();
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
-      if (err.code !== "ENOENT") {
-        throw err;
-      }
+      if (err.code !== "ENOENT") throw err;
     }
+  }
+
+  if (!connectionSecret && existsSync(pendingPath)) {
+    console.log("Pending connection found. Waiting for wallet approval...");
+    return await completePendingConnection(pendingPath, connectionPath);
   }
 
   if (!connectionSecret) {

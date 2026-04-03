@@ -8,7 +8,7 @@ export function registerGetBalanceCommand(program: Command) {
     .description("Get wallet balance")
     .action(async () => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await getBalance(client);
         output(result);
       });

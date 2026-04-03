@@ -12,7 +12,7 @@ export function registerPayKeysendCommand(program: Command) {
     .option("--tlv-records <json>", "TLV records as JSON array [{type, value}]")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         let tlvRecords: TlvRecord[] | undefined;
         if (options.tlvRecords) {
           tlvRecords = JSON.parse(options.tlvRecords);

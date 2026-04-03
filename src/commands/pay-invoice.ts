@@ -10,7 +10,7 @@ export function registerPayInvoiceCommand(program: Command) {
     .option("-a, --amount <sats>", "Amount (for zero-amount invoices)", parseInt)
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await payInvoice(client, {
           invoice: options.invoice,
           amount_in_sats: options.amount,

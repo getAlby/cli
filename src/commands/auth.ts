@@ -1,47 +1,18 @@
 import { Command } from "commander";
-import { NWAClient, NWCClient } from "@getalby/sdk";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { NWCClient } from "@getalby/sdk";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { getConnectionSecretPath, handleError } from "../utils.js";
-import { getInfo } from "../tools/nwc/get_info.js";
+import {
+  completePendingConnection,
+  getConnectionSecretPath,
+  getPendingConnectionSecretPath,
+  handleError,
+  saveConnectionSecret,
+  testAndLogConnection,
+} from "../utils.js";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-
-function getPendingConnectionSecretPath(name?: string) {
-  const filename = name
-    ? `pending-connection-secret-${name}.key`
-    : "pending-connection-secret.key";
-  return join(homedir(), ".alby-cli", filename);
-}
-
-async function testAndLogConnection(client: NWCClient) {
-  console.log("Testing connection...");
-  const info = await getInfo(client);
-  console.log(
-    `Connected to ${info.alias || "wallet"} (${info.network || "unknown network"})`,
-  );
-}
-
-function saveConnectionSecret(path: string, secret: string) {
-  const alreadyExists = existsSync(path);
-  const dir = join(homedir(), ".alby-cli");
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  writeFileSync(path, secret, { mode: 0o600 });
-  if (alreadyExists) {
-    chmodSync(path, 0o600);
-  }
-  console.log(`Connection saved to ${path}`);
-}
 
 export function registerAuthCommand(program: Command) {
   program
@@ -49,101 +20,44 @@ export function registerAuthCommand(program: Command) {
     .description(
       "Securely connect a wallet with human confirmation via the browser\n\n" +
         "  Step 1: npx @getalby/cli auth https://my.albyhub.com --app-name MyApp\n" +
-        "  Step 2: npx @getalby/cli auth --complete",
+        "  Step 2: after human confirmation, run any command to finalize the connection",
     )
     .option(
       "--app-name <name>",
       'Name of the agent or app that will use this wallet (e.g. "Claude Code")',
     )
     .option(
-      "--complete",
-      "Complete a pending connection after human approves it in the wallet",
-    )
-    .option(
       "--relay-url <url>",
-      "Relay URL to use with --complete",
+      "Relay URL for the pending connection",
       "wss://relay.getalby.com/v1",
     )
     .option("--force", "Overwrite existing connection secret")
-    .option(
-      "-w, --wallet-name <name>",
-      "Save as a named connection instead of the default",
-    )
+    .option("--remove-pending", "Remove a pending connection and start fresh")
     .action(
       async (
         walletUrl: string | undefined,
         options: {
           appName?: string;
-          complete?: boolean;
           force?: boolean;
-          walletName?: string;
           relayUrl: string;
+          removePending?: boolean;
         },
       ) => {
         await handleError(async () => {
-          const connectionSecretPath = getConnectionSecretPath(
-            options.walletName,
-          );
-          const pendingSecretPath = getPendingConnectionSecretPath(
-            options.walletName,
-          );
+          const walletName: string | undefined = program.opts().walletName;
+          const connectionSecretPath = getConnectionSecretPath(walletName);
+          const pendingSecretPath = getPendingConnectionSecretPath(walletName);
 
-          // Step 2: complete a pending connection
-          if (options.complete) {
+          // Remove pending connection
+          if (options.removePending) {
             if (!existsSync(pendingSecretPath)) {
-              console.error(
-                `Error: No pending connection found at ${pendingSecretPath}\n` +
-                  `Run: npx @getalby/cli auth <wallet-url> --app-name <name>`,
+              console.log(
+                `No pending connection found at ${pendingSecretPath}`,
               );
-              process.exit(1);
+            } else {
+              rmSync(pendingSecretPath);
+              console.log(`Removed pending connection at ${pendingSecretPath}`);
             }
-
-            const secret = readFileSync(pendingSecretPath, "utf-8").trim();
-
-            const nwaClient = new NWAClient({
-              appSecretKey: secret,
-              relayUrls: [options.relayUrl],
-              requestMethods: [],
-            });
-
-            await new Promise<void>((resolve, reject) => {
-              let settled = false;
-
-              const timer = setTimeout(() => {
-                if (settled) return;
-                settled = true;
-                unsub?.();
-                reject(
-                  new Error(
-                    "Timed out waiting for wallet approval. Run `npx @getalby/cli auth --complete` to try again.",
-                  ),
-                );
-              }, 5000);
-
-              let unsub: (() => void) | undefined;
-
-              nwaClient
-                .subscribe({
-                  onSuccess: async (nwcClient) => {
-                    if (settled) return;
-                    settled = true;
-                    clearTimeout(timer);
-                    unsub?.();
-
-                    await testAndLogConnection(nwcClient);
-                    saveConnectionSecret(
-                      connectionSecretPath,
-                      nwcClient.getNostrWalletConnectUrl(),
-                    );
-                    rmSync(pendingSecretPath);
-                    resolve();
-                  },
-                })
-                .then(({ unsub: u }) => {
-                  unsub = u;
-                });
-            });
-
             return;
           }
 
@@ -185,20 +99,33 @@ export function registerAuthCommand(program: Command) {
                 authUrl,
             );
 
-            const completeCmd =
-              `npx @getalby/cli auth --complete` +
-              (options.walletName
-                ? ` --wallet-name ${options.walletName}`
-                : "");
-            console.log(`\nOnce approved, run:\n  ${completeCmd}`);
+            const retryCmd = walletName
+              ? `npx @getalby/cli get-balance --wallet-name ${walletName}`
+              : `npx @getalby/cli get-balance`;
+            console.log(
+              `\nOnce approved, run any command, e.g.:\n  ${retryCmd}`,
+            );
 
+            return;
+          }
+
+          // Auto-complete: no wallet URL provided, check for pending connection
+          if (existsSync(pendingSecretPath)) {
+            console.log(
+              "Pending connection found. Waiting for wallet approval...",
+            );
+            const nwcClient = await completePendingConnection(
+              pendingSecretPath,
+              connectionSecretPath,
+              options.relayUrl,
+            );
+            await testAndLogConnection(nwcClient);
             return;
           }
 
           console.error(
             `Usage:\n` +
-              `  npx @getalby/cli auth <wallet-url> --app-name <name>\n` +
-              `  npx @getalby/cli auth --complete`,
+              `  npx @getalby/cli auth <wallet-url> --app-name <name>`,
           );
           process.exit(1);
         });
