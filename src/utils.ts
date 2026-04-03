@@ -12,23 +12,27 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+function sanitizeWalletName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 export function getConnectionSecretPath(name?: string) {
   const filename = name
-    ? `connection-secret-${name}.key`
+    ? `connection-secret-${sanitizeWalletName(name)}.key`
     : "connection-secret.key";
   return join(homedir(), ".alby-cli", filename);
 }
 
 export function getPendingConnectionSecretPath(name?: string) {
   const filename = name
-    ? `pending-connection-secret-${name}.key`
+    ? `pending-connection-secret-${sanitizeWalletName(name)}.key`
     : "pending-connection-secret.key";
   return join(homedir(), ".alby-cli", filename);
 }
 
 export function getPendingConnectionRelayPath(name?: string) {
   const filename = name
-    ? `pending-connection-relay-${name}.txt`
+    ? `pending-connection-relay-${sanitizeWalletName(name)}.txt`
     : "pending-connection-relay.txt";
   return join(homedir(), ".alby-cli", filename);
 }
