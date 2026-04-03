@@ -3,22 +3,15 @@ import { NWCClient } from "@getalby/sdk";
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { handleError } from "../utils.js";
+import { getConnectionSecretPath, handleError } from "../utils.js";
 import { getInfo } from "../tools/nwc/get_info.js";
-
-export function getConnectionSecretPath(name?: string) {
-  const filename = name
-    ? `connection-secret-${name}.key`
-    : "connection-secret.key";
-  return join(homedir(), ".alby-cli", filename);
-}
 
 export function registerConnectCommand(program: Command) {
   program
     .command('connect "[connection-secret]"')
     .description("Connect to a Nostr Wallet Connect wallet")
     .option("--force", "Overwrite existing connection secret")
-    .option("--wallet-name <name>", "Save as a named connection instead of the default")
+    .option("-w, --wallet-name <name>", "Save as a named connection instead of the default")
     .action(
       async (
         connectionSecret: string | undefined,

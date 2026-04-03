@@ -10,17 +10,10 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { handleError } from "../utils.js";
+import { getConnectionSecretPath, handleError } from "../utils.js";
 import { getInfo } from "../tools/nwc/get_info.js";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-
-function getConnectionSecretPath(name?: string) {
-  const filename = name
-    ? `connection-secret-${name}.key`
-    : "connection-secret.key";
-  return join(homedir(), ".alby-cli", filename);
-}
 
 function getPendingConnectionSecretPath(name?: string) {
   const filename = name
@@ -73,7 +66,7 @@ export function registerAuthCommand(program: Command) {
     )
     .option("--force", "Overwrite existing connection secret")
     .option(
-      "--wallet-name <name>",
+      "-w, --wallet-name <name>",
       "Save as a named connection instead of the default",
     )
     .action(

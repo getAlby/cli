@@ -4,23 +4,40 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export function getConnectionSecretPath(name?: string) {
+  const filename = name
+    ? `connection-secret-${name}.key`
+    : "connection-secret.key";
+  return join(homedir(), ".alby-cli", filename);
+}
+
 export function getClient(program: Command): NWCClient {
   const opts = program.opts();
   let connectionSecret: string | undefined = opts.connectionSecret;
 
-  // Check environment variables if --connection-secret not provided
+  if (!connectionSecret && opts.walletName) {
+    const namedPath = getConnectionSecretPath(opts.walletName);
+    try {
+      connectionSecret = readFileSync(namedPath, "utf-8").trim();
+    } catch (error) {
+      console.error(
+        `Error: Failed to read connection secret file "${namedPath}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exit(1);
+    }
+  }
+
   if (!connectionSecret) {
     connectionSecret = process.env.NWC_URL;
   }
 
   if (!connectionSecret) {
-    const defaultPath = join(homedir(), ".alby-cli", "connection-secret.key");
+    const defaultPath = getConnectionSecretPath();
     try {
       connectionSecret = readFileSync(defaultPath, "utf-8").trim();
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
       if (err.code !== "ENOENT") {
-        // only throw an error if it's not a file not found error
         throw err;
       }
     }
@@ -28,7 +45,7 @@ export function getClient(program: Command): NWCClient {
 
   if (!connectionSecret) {
     console.error(
-      "Error: No connection secret found. Pass -c <secret>, set NWC_URL, or create ~/.alby-cli/connection-secret.key",
+      "Error: No connection secret found. Pass -c <secret>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
     );
     process.exit(1);
   }

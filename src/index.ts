@@ -40,13 +40,18 @@ program
     "-c, --connection-secret <string>",
     "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
   )
+  .option(
+    "-w, --wallet-name <name>",
+    "Use a named wallet's connection secret (~/.alby-cli/connection-secret-<name>.key)",
+  )
   .addHelpText(
     "after",
     `
 Connection Secret Resolution (in order of priority):
   1. --connection-secret flag (value or path to file)
-  2. NWC_URL environment variable
-  3. ~/.alby-cli/connection-secret.key (default file location)
+  2. --wallet-name flag (~/.alby-cli/connection-secret-<name>.key)
+  3. NWC_URL environment variable
+  4. ~/.alby-cli/connection-secret.key (default file location)
 
 Security:
   - Do NOT print the connection secret to any logs or otherwise reveal it.
