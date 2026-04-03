@@ -125,10 +125,9 @@ export async function getClient(program: Command): Promise<NWCClient> {
   }
 
   if (!connectionSecret) {
-    console.error(
-      "Error: No connection secret found. Pass -c <secret>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
+    throw new Error(
+      "No connection secret provided. Pass -c <secret or file path>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
     );
-    process.exit(1);
   }
 
   // Auto-detect: if it doesn't start with the protocol, treat as file path
