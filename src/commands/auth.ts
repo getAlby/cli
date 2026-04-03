@@ -118,6 +118,7 @@ export function registerAuthCommand(program: Command) {
               pendingSecretPath,
               connectionSecretPath,
               options.relayUrl,
+              program.opts().verbose,
             );
             await testAndLogConnection(nwcClient);
             return;

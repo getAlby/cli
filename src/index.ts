@@ -44,6 +44,7 @@ program
     "-w, --wallet-name <name>",
     "Use a named wallet's connection secret (~/.alby-cli/connection-secret-<name>.key)",
   )
+  .option("-v, --verbose", "Print status messages to stderr")
   .addHelpText(
     "after",
     `

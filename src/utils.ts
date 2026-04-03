@@ -26,7 +26,11 @@ export function getPendingConnectionSecretPath(name?: string) {
   return join(homedir(), ".alby-cli", filename);
 }
 
-export function saveConnectionSecret(path: string, secret: string) {
+export function saveConnectionSecret(
+  path: string,
+  secret: string,
+  verbose: boolean,
+) {
   const alreadyExists = existsSync(path);
   const dir = join(homedir(), ".alby-cli");
   if (!existsSync(dir)) {
@@ -36,7 +40,9 @@ export function saveConnectionSecret(path: string, secret: string) {
   if (alreadyExists) {
     chmodSync(path, 0o600);
   }
-  console.log(`Connection saved to ${path}`);
+  if (verbose) {
+    console.error(`Connection saved to ${path}`);
+  }
 }
 
 export async function testAndLogConnection(client: NWCClient) {
@@ -51,6 +57,7 @@ export async function completePendingConnection(
   pendingSecretPath: string,
   connectionSecretPath: string,
   relayUrl: string = "wss://relay.getalby.com/v1",
+  verbose: boolean,
 ): Promise<NWCClient> {
   const secret = readFileSync(pendingSecretPath, "utf-8").trim();
 
@@ -87,6 +94,7 @@ export async function completePendingConnection(
           saveConnectionSecret(
             connectionSecretPath,
             nwcClient.getNostrWalletConnectUrl(),
+            verbose,
           );
           rmSync(pendingSecretPath);
           resolve(nwcClient);
@@ -120,8 +128,15 @@ export async function getClient(program: Command): Promise<NWCClient> {
   }
 
   if (!connectionSecret && existsSync(pendingPath)) {
-    console.log("Pending connection found. Waiting for wallet approval...");
-    return await completePendingConnection(pendingPath, connectionPath);
+    if (opts.verbose) {
+      console.error("Pending connection found. Waiting for wallet approval...");
+    }
+    return await completePendingConnection(
+      pendingPath,
+      connectionPath,
+      undefined,
+      opts.verbose,
+    );
   }
 
   if (!connectionSecret) {

@@ -75,7 +75,11 @@ export function registerConnectCommand(program: Command) {
 
           await testAndLogConnection(client);
 
-          saveConnectionSecret(connectionSecretPath, connectionSecret);
+          saveConnectionSecret(
+            connectionSecretPath,
+            connectionSecret,
+            program.opts().verbose,
+          );
         });
       },
     );
