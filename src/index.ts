@@ -20,7 +20,7 @@ import { registerSatsToFiatCommand } from "./commands/sats-to-fiat.js";
 import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
-import { registerFetch402Command } from "./commands/fetch402.js";
+import { registerFetch402Command } from "./commands/fetch.js";
 import { registerConnectCommand } from "./commands/connect.js";
 
 const program = new Command();
@@ -85,7 +85,7 @@ registerParseInvoiceCommand(program);
 registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 
-// Register 402 payment commands
+// Register fetch command for payment-protected resources
 program.commandsGroup("HTTP 402 Payments (require --connection-secret):");
 registerFetch402Command(program);
 

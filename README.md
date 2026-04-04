@@ -20,11 +20,8 @@ npx @getalby/cli connect "nostr+walletconnect://..."
 # Use the default saved wallet connection (preferred)
 npx @getalby/cli <command> [options]
 
-# Pass a file path to a connection secret
+# Or pass a connection secret directly
 npx @getalby/cli -c /path/to/secret.txt <command> [options]
-
-# Or pass connection string directly
-npx @getalby/cli -c "nostr+walletconnect://..." <command> [options]
 ```
 
 The `-c` option auto-detects whether you're passing a connection string or a file path. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
@@ -55,47 +52,47 @@ curl -X POST "https://faucet.nwc.dev/wallets/<username>/topup?amount=5000"
 
 ### Wallet Commands
 
-These commands require `--connection-secret`:
+These commands require a wallet connection (see [First-time setup](#first-time-setup)):
 
 ```bash
 # Get wallet balance
-npx @getalby/cli -c "nostr+walletconnect://..." get-balance
+npx @getalby/cli get-balance
 
 # Get wallet info
-npx @getalby/cli -c "nostr+walletconnect://..." get-info
+npx @getalby/cli get-info
 
 # Get wallet service capabilities
-npx @getalby/cli -c "nostr+walletconnect://..." get-wallet-service-info
+npx @getalby/cli get-wallet-service-info
 
 # Create an invoice
-npx @getalby/cli -c "nostr+walletconnect://..." make-invoice --amount 1000 --description "Payment"
+npx @getalby/cli make-invoice --amount 1000 --description "Payment"
 
 # Pay an invoice
-npx @getalby/cli -c "nostr+walletconnect://..." pay-invoice --invoice "lnbc..."
+npx @getalby/cli pay-invoice --invoice "lnbc..."
 
 # Send a keysend payment
-npx @getalby/cli -c "nostr+walletconnect://..." pay-keysend --pubkey "02abc..." --amount 100
+npx @getalby/cli pay-keysend --pubkey "02abc..." --amount 100
 
 # Look up an invoice by payment hash
-npx @getalby/cli -c "nostr+walletconnect://..." lookup-invoice --payment-hash "abc123..."
+npx @getalby/cli lookup-invoice --payment-hash "abc123..."
 
 # List transactions
-npx @getalby/cli -c "nostr+walletconnect://..." list-transactions --limit 10
+npx @getalby/cli list-transactions --limit 10
 
 # Get wallet budget
-npx @getalby/cli -c "nostr+walletconnect://..." get-budget
+npx @getalby/cli get-budget
 
 # Sign a message
-npx @getalby/cli -c "nostr+walletconnect://..." sign-message --message "Hello, World!"
+npx @getalby/cli sign-message --message "Hello, World!"
 
 # Fetch a payment-protected resource (auto-detects L402, X402, MPP)
-npx @getalby/cli 402 --url "https://example.com/api"
+npx @getalby/cli fetch --url "https://example.com/api"
 
 # Fetch with custom method, headers, and body
-npx @getalby/cli 402 --url "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
+npx @getalby/cli fetch --url "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
 
 # Wait for a payment notification
-npx @getalby/cli -c "nostr+walletconnect://..." wait-for-payment --payment-hash "abc123..."
+npx @getalby/cli wait-for-payment --payment-hash "abc123..."
 ```
 
 ### HOLD Invoices
@@ -104,13 +101,13 @@ HOLD invoices allow you to accept payments conditionally - the payment is held u
 
 ```bash
 # Create a HOLD invoice (you provide the payment hash)
-npx @getalby/cli -c "nostr+walletconnect://..." make-hold-invoice --amount 1000 --payment-hash "abc123..."
+npx @getalby/cli make-hold-invoice --amount 1000 --payment-hash "abc123..."
 
 # Settle a HOLD invoice (claim the payment)
-npx @getalby/cli -c "nostr+walletconnect://..." settle-hold-invoice --preimage "def456..."
+npx @getalby/cli settle-hold-invoice --preimage "def456..."
 
 # Cancel a HOLD invoice (reject the payment)
-npx @getalby/cli -c "nostr+walletconnect://..." cancel-hold-invoice --payment-hash "abc123..."
+npx @getalby/cli cancel-hold-invoice --payment-hash "abc123..."
 ```
 
 ### Lightning Tools
@@ -153,7 +150,7 @@ These require `-c` or `--connection-secret`:
 | `list-transactions`       | List transactions              | -                               |
 | `sign-message`            | Sign a message with wallet key | `--message`                     |
 | `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
-| `402`                     | Fetch payment-protected resource (L402, X402, MPP) | `--url`              |
+| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`              |
 
 ### HOLD Invoice Commands
 

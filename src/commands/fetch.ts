@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { fetch402 } from "../tools/lightning/fetch402.js";
+import { fetch402 } from "../tools/lightning/fetch.js";
 import { getClient, handleError, output } from "../utils.js";
 
 export function registerFetch402Command(program: Command) {
   program
-    .command("402")
+    .command("fetch")
     .description("Fetch a payment-protected resource (auto-detects L402, X402, MPP)")
     .requiredOption("-u, --url <url>", "URL to fetch")
     .option("-m, --method <method>", "HTTP method (GET, POST, etc.)")
