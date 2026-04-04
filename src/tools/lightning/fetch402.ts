@@ -1,4 +1,4 @@
-import { fetch402 } from "@getalby/lightning-tools/402";
+import { fetch402 as fetch402Lib } from "@getalby/lightning-tools/402";
 import { NWCClient } from "@getalby/sdk";
 
 export interface Fetch402Params {
@@ -9,11 +9,12 @@ export interface Fetch402Params {
 }
 
 export async function fetch402(client: NWCClient, params: Fetch402Params) {
+  const method = params.method?.toUpperCase();
   const requestOptions: RequestInit = {
-    method: params.method,
+    method,
   };
 
-  if (params.method && params.method !== "GET" && params.method !== "HEAD") {
+  if (method && method !== "GET" && method !== "HEAD") {
     requestOptions.body = params.body;
     requestOptions.headers = {
       "Content-Type": "application/json",
@@ -23,7 +24,9 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     requestOptions.headers = params.headers;
   }
 
-  const result = await fetch402(params.url, requestOptions, { wallet: client });
+  const result = await fetch402Lib(params.url, requestOptions, {
+    wallet: client,
+  });
 
   const responseContent = await result.text();
   if (!result.ok) {

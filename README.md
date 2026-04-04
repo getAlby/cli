@@ -88,8 +88,11 @@ npx @getalby/cli -c "nostr+walletconnect://..." get-budget
 # Sign a message
 npx @getalby/cli -c "nostr+walletconnect://..." sign-message --message "Hello, World!"
 
-# Fetch L402-protected resource
-npx @getalby/cli -c "nostr+walletconnect://..." fetch-l402 --url "https://example.com/api"
+# Fetch a payment-protected resource (auto-detects L402, X402, MPP)
+npx @getalby/cli 402 --url "https://example.com/api"
+
+# Fetch with custom method, headers, and body
+npx @getalby/cli 402 --url "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
 
 # Wait for a payment notification
 npx @getalby/cli -c "nostr+walletconnect://..." wait-for-payment --payment-hash "abc123..."
@@ -150,7 +153,7 @@ These require `-c` or `--connection-secret`:
 | `list-transactions`       | List transactions              | -                               |
 | `sign-message`            | Sign a message with wallet key | `--message`                     |
 | `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
-| `fetch-l402`              | Fetch L402-protected resource  | `--url`                         |
+| `402`                     | Fetch payment-protected resource (L402, X402, MPP) | `--url`              |
 
 ### HOLD Invoice Commands
 
