@@ -12,7 +12,7 @@ export function registerFetchL402Command(program: Command) {
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await fetchL402(client, {
           url: options.url,
           method: options.method,

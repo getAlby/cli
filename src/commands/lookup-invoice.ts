@@ -14,7 +14,7 @@ export function registerLookupInvoiceCommand(program: Command) {
           console.error("Error: --payment-hash or --invoice is required");
           process.exit(1);
         }
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await lookupInvoice(client, {
           payment_hash: options.paymentHash,
           invoice: options.invoice,

@@ -9,7 +9,7 @@ export function registerSignMessageCommand(program: Command) {
     .requiredOption("-m, --message <text>", "Message to sign")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await signMessage(client, {
           message: options.message,
         });

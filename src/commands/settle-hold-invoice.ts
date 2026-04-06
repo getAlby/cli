@@ -9,7 +9,7 @@ export function registerSettleHoldInvoiceCommand(program: Command) {
     .requiredOption("--preimage <hex>", "Preimage (32 bytes hex)")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await settleHoldInvoice(client, {
           preimage: options.preimage,
         });
