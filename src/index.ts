@@ -35,7 +35,7 @@ program
       "    $ npx @getalby/cli get-balance\n" +
       "    $ npx @getalby/cli pay-invoice --invoice lnbc...",
   )
-  .version("0.2.4")
+  .version("0.3.0")
   .option(
     "-c, --connection-secret <string>",
     "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
