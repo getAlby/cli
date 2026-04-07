@@ -29,20 +29,22 @@ const program = new Command();
 program
   .name("@getalby/cli")
   .description(
-    "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n\n" +
+    "CLI for Nostr Wallet Connect (NIP-47) with lightning tools\n" +
+      "  Run 'auth' or 'connect' first to set up a wallet connection.\n\n" +
       "  Examples:\n" +
+      "    $ npx @getalby/cli auth https://my.albyhub.com --app-name OpenClaw\n" +
       '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
       "    $ npx @getalby/cli get-balance\n" +
       "    $ npx @getalby/cli pay-invoice --invoice lnbc...",
   )
   .version("0.4.0")
   .option(
-    "-c, --connection-secret <string>",
-    "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
-  )
-  .option(
     "-w, --wallet-name <name>",
     "Use a named wallet's connection secret (~/.alby-cli/connection-secret-<name>.key)",
+  )
+  .option(
+    "-c, --connection-secret <string>",
+    "NWC connection secret (nostr+walletconnect://...) or path to file containing it (preferred)",
   )
   .option("-v, --verbose", "Print status messages to stderr")
   .addHelpText(
@@ -63,7 +65,7 @@ Security:
   );
 
 // Register common wallet commands
-program.commandsGroup("Wallet Commands (require --connection-secret):");
+program.commandsGroup("Wallet Commands (requires wallet connection):");
 registerGetBalanceCommand(program);
 registerGetBudgetCommand(program);
 registerGetInfoCommand(program);
@@ -73,9 +75,7 @@ registerLookupInvoiceCommand(program);
 registerListTransactionsCommand(program);
 
 // Register advanced wallet commands
-program.commandsGroup(
-  "Advanced Wallet Commands (require --connection-secret):",
-);
+program.commandsGroup("Advanced Wallet Commands (requires wallet connection):");
 registerPayKeysendCommand(program);
 registerGetWalletServiceInfoCommand(program);
 registerWaitForPaymentCommand(program);
@@ -85,7 +85,7 @@ registerSettleHoldInvoiceCommand(program);
 registerCancelHoldInvoiceCommand(program);
 
 // Register lightning tool commands
-program.commandsGroup("Lightning Tools (no --connection-secret required):");
+program.commandsGroup("Lightning Tools (no wallet connection required):");
 registerFiatToSatsCommand(program);
 registerSatsToFiatCommand(program);
 registerParseInvoiceCommand(program);
@@ -93,7 +93,7 @@ registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 
 // Register fetch command for payment-protected resources
-program.commandsGroup("HTTP 402 Payments (require --connection-secret):");
+program.commandsGroup("HTTP 402 Payments (requires wallet connection):");
 registerFetch402Command(program);
 
 // Register setup commands
