@@ -10,6 +10,11 @@ export function registerFetch402Command(program: Command) {
     .option("-m, --method <method>", "HTTP method (GET, POST, etc.)")
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
+    .option(
+      "--max-amount <sats>",
+      "Max sats to auto-pay (default: 5000, 0 = no limit)",
+      parseInt,
+    )
     .action(async (options) => {
       await handleError(async () => {
         const client = getClient(program);
@@ -18,6 +23,7 @@ export function registerFetch402Command(program: Command) {
           method: options.method,
           body: options.body,
           headers: options.headers ? JSON.parse(options.headers) : undefined,
+          maxAmountSats: options.maxAmount,
         });
         output(result);
       });

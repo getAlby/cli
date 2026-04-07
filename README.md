@@ -91,6 +91,9 @@ npx @getalby/cli fetch --url "https://example.com/api"
 # Fetch with custom method, headers, and body
 npx @getalby/cli fetch --url "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
 
+# Fetch with a custom max amount (default: 5000 sats, 0 = no limit)
+npx @getalby/cli fetch --url "https://example.com/api" --max-amount 1000
+
 # Wait for a payment notification
 npx @getalby/cli wait-for-payment --payment-hash "abc123..."
 ```
@@ -150,7 +153,7 @@ These require `-c` or `--connection-secret`:
 | `list-transactions`       | List transactions              | -                               |
 | `sign-message`            | Sign a message with wallet key | `--message`                     |
 | `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
-| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`              |
+| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`, `--max-amount` |
 
 ### HOLD Invoice Commands
 

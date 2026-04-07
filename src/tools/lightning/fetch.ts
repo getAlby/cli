@@ -1,11 +1,14 @@
 import { fetch402 as fetch402Lib } from "@getalby/lightning-tools/402";
 import { NWCClient } from "@getalby/sdk";
 
+const DEFAULT_MAX_AMOUNT_SATS = 5000;
+
 export interface Fetch402Params {
   url: string;
   method?: string;
   body?: string;
   headers?: Record<string, string>;
+  maxAmountSats?: number;
 }
 
 export async function fetch402(client: NWCClient, params: Fetch402Params) {
@@ -24,8 +27,11 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     requestOptions.headers = params.headers;
   }
 
+  const maxAmountSats = params.maxAmountSats ?? DEFAULT_MAX_AMOUNT_SATS;
+
   const result = await fetch402Lib(params.url, requestOptions, {
     wallet: client,
+    maxAmount: maxAmountSats || undefined,
   });
 
   const responseContent = await result.text();
