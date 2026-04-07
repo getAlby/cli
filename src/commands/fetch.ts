@@ -12,7 +12,7 @@ export function registerFetch402Command(program: Command) {
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
       "--max-amount <sats>",
-      "Max sats to auto-pay (default: 5000, 0 = no limit)",
+      "Maximum amount in sats to pay per request. Aborts if the endpoint requests more. (default: 5000, 0 = no limit)",
       parseInt,
     )
     .action(async (options) => {
