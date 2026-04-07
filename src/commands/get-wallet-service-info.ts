@@ -8,7 +8,7 @@ export function registerGetWalletServiceInfoCommand(program: Command) {
     .description("Get wallet service capabilities")
     .action(async () => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await getWalletServiceInfo(client);
         output(result);
       });

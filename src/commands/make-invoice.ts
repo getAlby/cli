@@ -11,7 +11,7 @@ export function registerMakeInvoiceCommand(program: Command) {
     .option("-e, --expiry <seconds>", "Expiry time in seconds", parseInt)
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await makeInvoice(client, {
           amount_in_sats: options.amount,
           description: options.description,

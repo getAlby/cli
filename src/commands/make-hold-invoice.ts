@@ -12,7 +12,7 @@ export function registerMakeHoldInvoiceCommand(program: Command) {
     .option("-e, --expiry <seconds>", "Expiry time in seconds", parseInt)
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await makeHoldInvoice(client, {
           amount_in_sats: options.amount,
           payment_hash: options.paymentHash,
