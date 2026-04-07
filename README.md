@@ -89,7 +89,7 @@ curl -X POST "https://faucet.nwc.dev/wallets/<username>/topup?amount=5000"
 
 ### Wallet Commands
 
-These commands require `--connection-secret`:
+These commands require a wallet connection - either default connection, or specify a custom connection with `-w`, '-c', or `NWC_URL` environment variable:
 
 ```bash
 # Get wallet balance
@@ -173,46 +173,7 @@ npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby
 
 ## Command Reference
 
-### Wallet Commands
-
-These require a wallet connection (`-c`, `--wallet-name`, or `NWC_URL`):
-
-| Command                   | Description                                        | Required Options                |
-| ------------------------- | -------------------------------------------------- | ------------------------------- |
-| `get-balance`             | Get wallet balance                                 | -                               |
-| `get-info`                | Get wallet info                                    | -                               |
-| `get-wallet-service-info` | Get wallet capabilities                            | -                               |
-| `get-budget`              | Get wallet budget                                  | -                               |
-| `make-invoice`            | Create a lightning invoice                         | `--amount`                      |
-| `pay-invoice`             | Pay a lightning invoice                            | `--invoice`                     |
-| `pay-keysend`             | Send a keysend payment                             | `--pubkey`, `--amount`          |
-| `lookup-invoice`          | Look up an invoice                                 | `--payment-hash` or `--invoice` |
-| `list-transactions`       | List transactions                                  | -                               |
-| `sign-message`            | Sign a message with wallet key                     | `--message`                     |
-| `wait-for-payment`        | Wait for payment notification                      | `--payment-hash`                |
-| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`, `--max-amount`         |
-
-### HOLD Invoice Commands
-
-These require a wallet connection (`-c`, `--wallet-name`, or `NWC_URL`):
-
-| Command               | Description           | Required Options             |
-| --------------------- | --------------------- | ---------------------------- |
-| `make-hold-invoice`   | Create a HOLD invoice | `--amount`, `--payment-hash` |
-| `settle-hold-invoice` | Settle a HOLD invoice | `--preimage`                 |
-| `cancel-hold-invoice` | Cancel a HOLD invoice | `--payment-hash`             |
-
-### Lightning Tools
-
-These don't require a wallet connection:
-
-| Command                                  | Description                            | Required Options          |
-| ---------------------------------------- | -------------------------------------- | ------------------------- |
-| `fiat-to-sats`                           | Convert fiat to sats                   | `--currency`, `--amount`  |
-| `sats-to-fiat`                           | Convert sats to fiat                   | `--amount`, `--currency`  |
-| `parse-invoice`                          | Parse a BOLT-11 invoice                | `--invoice`               |
-| `verify-preimage`                        | Verify preimage against invoice        | `--invoice`, `--preimage` |
-| `request-invoice-from-lightning-address` | Request invoice from lightning address | `--address`, `--amount`   |
+Run `npx @getalby/cli help` for a full list of commands and possible arguments.
 
 ## Output
 
