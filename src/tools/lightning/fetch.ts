@@ -1,19 +1,23 @@
-import { fetchWithL402 } from "@getalby/lightning-tools";
+import { fetch402 as fetch402Lib } from "@getalby/lightning-tools/402";
 import { NWCClient } from "@getalby/sdk";
 
-export interface FetchL402Params {
+const DEFAULT_MAX_AMOUNT_SATS = 5000;
+
+export interface Fetch402Params {
   url: string;
   method?: string;
   body?: string;
   headers?: Record<string, string>;
+  maxAmountSats?: number;
 }
 
-export async function fetchL402(client: NWCClient, params: FetchL402Params) {
+export async function fetch402(client: NWCClient, params: Fetch402Params) {
+  const method = params.method?.toUpperCase();
   const requestOptions: RequestInit = {
-    method: params.method,
+    method,
   };
 
-  if (params.method && params.method !== "GET" && params.method !== "HEAD") {
+  if (method && method !== "GET" && method !== "HEAD") {
     requestOptions.body = params.body;
     requestOptions.headers = {
       "Content-Type": "application/json",
@@ -23,13 +27,11 @@ export async function fetchL402(client: NWCClient, params: FetchL402Params) {
     requestOptions.headers = params.headers;
   }
 
-  const result = await fetchWithL402(params.url, requestOptions, {
-    wallet: {
-      sendPayment: async (invoice: string) => {
-        const result = await client.payInvoice({ invoice });
-        return { preimage: result.preimage };
-      },
-    },
+  const maxAmountSats = params.maxAmountSats ?? DEFAULT_MAX_AMOUNT_SATS;
+
+  const result = await fetch402Lib(params.url, requestOptions, {
+    wallet: client,
+    maxAmount: maxAmountSats || undefined,
   });
 
   const responseContent = await result.text();

@@ -1,23 +1,31 @@
 import { Command } from "commander";
-import { fetchL402 } from "../tools/lightning/fetch_l402.js";
+import { fetch402 } from "../tools/lightning/fetch.js";
 import { getClient, handleError, output } from "../utils.js";
 
-export function registerFetchL402Command(program: Command) {
+export function registerFetch402Command(program: Command) {
   program
-    .command("fetch-l402")
-    .description("Fetch L402-protected resource")
+    .command("fetch")
+    .description(
+      "Fetch a payment-protected resource (auto-detects L402, X402, MPP)",
+    )
     .requiredOption("-u, --url <url>", "URL to fetch")
     .option("-m, --method <method>", "HTTP method (GET, POST, etc.)")
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
+    .option(
+      "--max-amount <sats>",
+      "Maximum amount in sats to pay per request. Aborts if the endpoint requests more. (default: 5000, 0 = no limit)",
+      parseInt,
+    )
     .action(async (options) => {
       await handleError(async () => {
         const client = await getClient(program);
-        const result = await fetchL402(client, {
+        const result = await fetch402(client, {
           url: options.url,
           method: options.method,
           body: options.body,
           headers: options.headers ? JSON.parse(options.headers) : undefined,
+          maxAmountSats: options.maxAmount,
         });
         output(result);
       });
