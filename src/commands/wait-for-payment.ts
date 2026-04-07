@@ -14,7 +14,7 @@ export function registerWaitForPaymentCommand(program: Command) {
     .option("--timeout <seconds>", "Timeout in seconds", parseInt)
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await waitForPayment(client, {
           payment_hash: options.paymentHash,
           type: options.type as NotificationType | undefined,

@@ -9,7 +9,7 @@ export function registerCancelHoldInvoiceCommand(program: Command) {
     .requiredOption("--payment-hash <hex>", "Payment hash (32 bytes hex)")
     .action(async (options) => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await cancelHoldInvoice(client, {
           payment_hash: options.paymentHash,
         });

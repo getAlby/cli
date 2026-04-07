@@ -53,9 +53,12 @@ describe("Connection Secret Handling", () => {
   });
 
   test("errors when no connection secret provided", () => {
-    const result = runCli<{ error: string }>("get-balance");
+    const result = runCli<{ error: string }>("get-balance", {
+      HOME: "/nonexistent-test-home",
+      NWC_URL: "",
+    });
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--connection-secret is required");
+    expect(result.output.error).toContain("No connection secret provided");
   });
 
   test("errors when connection string is malformed", () => {

@@ -8,7 +8,7 @@ export function registerGetBudgetCommand(program: Command) {
     .description("Get wallet budget information")
     .action(async () => {
       await handleError(async () => {
-        const client = getClient(program);
+        const client = await getClient(program);
         const result = await getBudget(client);
         output(result);
       });

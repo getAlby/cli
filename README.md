@@ -8,17 +8,54 @@ Built for agents - use with the [Alby Bitcoin Payments CLI Skill](https://github
 
 ### First-time setup
 
-The CLI is an interface to a wallet and therefore needs a connection secret. You can use the `connect` command to save a wallet connection for the CLI to use.
+The CLI is an interface to a wallet and therefore needs a connection secret.
+
+**Option 1: `auth` — for wallets that support it (e.g. Alby Hub)**
+
+```bash
+# Step 1: generate a connection URL and open it in your wallet to approve
+# --app-name is the name of the agent/app that will use the wallet via the CLI (e.g. "Claude Code", "OpenClaw")
+npx @getalby/cli auth https://my.albyhub.com --app-name "Claude Code"
+
+# Step 2: after approving in the wallet, complete the connection
+npx @getalby/cli auth --complete
+```
+
+**Option 2: `connect` — paste a NWC connection secret directly**
 
 ```bash
 npx @getalby/cli connect "nostr+walletconnect://..."
 ```
 
-### Using an existing connection secret
+### Multiple wallets
+
+Use `--wallet-name` when setting up to save named connections:
+
+```bash
+npx @getalby/cli connect "nostr+walletconnect://..." --wallet-name work
+npx @getalby/cli auth https://my.albyhub.com --app-name "Claude Code" --wallet-name personal
+```
+
+Then pass `--wallet-name` to any command to use that wallet:
+
+```bash
+npx @getalby/cli --wallet-name work get-balance
+npx @getalby/cli --wallet-name personal pay-invoice --invoice lnbc...
+```
+
+### Connection secret resolution (in order of priority)
+
+1. `--connection-secret` flag (value or path to file)
+2. `--wallet-name` flag (`~/.alby-cli/connection-secret-<name>.key`)
+3. `NWC_URL` environment variable
+4. `~/.alby-cli/connection-secret.key` (default file location)
 
 ```bash
 # Use the default saved wallet connection (preferred)
 npx @getalby/cli <command> [options]
+
+# Use a named wallet
+npx @getalby/cli --wallet-name alice <command> [options]
 
 # Or pass a connection secret directly
 npx @getalby/cli -c /path/to/secret.txt <command> [options]
@@ -26,7 +63,7 @@ npx @getalby/cli -c /path/to/secret.txt <command> [options]
 
 The `-c` option auto-detects whether you're passing a connection string or a file path. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
 
-You can also pass a connection string via the `NWC_URL` environment variable instead of using the `-c` option:
+You can also set the `NWC_URL` environment variable instead of using the `-c` option:
 
 ```txt
 NWC_URL="nostr+walletconnect://..."
@@ -52,7 +89,7 @@ curl -X POST "https://faucet.nwc.dev/wallets/<username>/topup?amount=5000"
 
 ### Wallet Commands
 
-These commands require a wallet connection (see [First-time setup](#first-time-setup)):
+These commands require `--connection-secret`:
 
 ```bash
 # Get wallet balance
@@ -138,26 +175,26 @@ npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby
 
 ### Wallet Commands
 
-These require `-c` or `--connection-secret`:
+These require a wallet connection (`-c`, `--wallet-name`, or `NWC_URL`):
 
-| Command                   | Description                    | Required Options                |
-| ------------------------- | ------------------------------ | ------------------------------- |
-| `get-balance`             | Get wallet balance             | -                               |
-| `get-info`                | Get wallet info                | -                               |
-| `get-wallet-service-info` | Get wallet capabilities        | -                               |
-| `get-budget`              | Get wallet budget              | -                               |
-| `make-invoice`            | Create a lightning invoice     | `--amount`                      |
-| `pay-invoice`             | Pay a lightning invoice        | `--invoice`                     |
-| `pay-keysend`             | Send a keysend payment         | `--pubkey`, `--amount`          |
-| `lookup-invoice`          | Look up an invoice             | `--payment-hash` or `--invoice` |
-| `list-transactions`       | List transactions              | -                               |
-| `sign-message`            | Sign a message with wallet key | `--message`                     |
-| `wait-for-payment`        | Wait for payment notification  | `--payment-hash`                |
-| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`, `--max-amount` |
+| Command                   | Description                                        | Required Options                |
+| ------------------------- | -------------------------------------------------- | ------------------------------- |
+| `get-balance`             | Get wallet balance                                 | -                               |
+| `get-info`                | Get wallet info                                    | -                               |
+| `get-wallet-service-info` | Get wallet capabilities                            | -                               |
+| `get-budget`              | Get wallet budget                                  | -                               |
+| `make-invoice`            | Create a lightning invoice                         | `--amount`                      |
+| `pay-invoice`             | Pay a lightning invoice                            | `--invoice`                     |
+| `pay-keysend`             | Send a keysend payment                             | `--pubkey`, `--amount`          |
+| `lookup-invoice`          | Look up an invoice                                 | `--payment-hash` or `--invoice` |
+| `list-transactions`       | List transactions                                  | -                               |
+| `sign-message`            | Sign a message with wallet key                     | `--message`                     |
+| `wait-for-payment`        | Wait for payment notification                      | `--payment-hash`                |
+| `fetch`                   | Fetch payment-protected resource (L402, X402, MPP) | `--url`, `--max-amount`         |
 
 ### HOLD Invoice Commands
 
-These require `-c` or `--connection-secret`:
+These require a wallet connection (`-c`, `--wallet-name`, or `NWC_URL`):
 
 | Command               | Description           | Required Options             |
 | --------------------- | --------------------- | ---------------------------- |

@@ -1,16 +1,12 @@
 import { Command } from "commander";
 import { NWCClient } from "@getalby/sdk";
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { handleError } from "../utils.js";
-import { getInfo } from "../tools/nwc/get_info.js";
-
-const CONNECTION_SECRET_PATH = join(
-  homedir(),
-  ".alby-cli",
-  "connection-secret.key",
-);
+import { existsSync } from "node:fs";
+import {
+  getConnectionSecretPath,
+  handleError,
+  saveConnectionSecret,
+  testAndLogConnection,
+} from "../utils.js";
 
 export function registerConnectCommand(program: Command) {
   program
@@ -23,10 +19,12 @@ export function registerConnectCommand(program: Command) {
         options: { force?: boolean },
       ) => {
         await handleError(async () => {
-          const alreadyExists = existsSync(CONNECTION_SECRET_PATH);
-          if (alreadyExists && !options.force) {
+          const connectionSecretPath = getConnectionSecretPath(
+            program.opts().walletName,
+          );
+          if (existsSync(connectionSecretPath) && !options.force) {
             console.error(
-              `Error: Already connected. Connection secret exists at ${CONNECTION_SECRET_PATH}\n` +
+              `Error: Already connected. Connection secret exists at ${connectionSecretPath}\n` +
                 `To overwrite, use --force.`,
             );
             process.exit(1);
@@ -34,7 +32,7 @@ export function registerConnectCommand(program: Command) {
 
           if (!connectionSecret) {
             console.error(
-              `Usage: alby-cli connect "<connection-secret>"\n` +
+              `Usage: npx @getalby/cli connect "<connection-secret>"\n` +
                 `Provide a NWC connection secret (nostr+walletconnect://...)`,
             );
             process.exit(1);
@@ -75,25 +73,13 @@ export function registerConnectCommand(program: Command) {
             process.exit(1);
           }
 
-          console.log("Testing connection...");
-          const info = await getInfo(client);
-          console.log(
-            `Connected to ${info.alias || "wallet"} (${info.network || "unknown network"})`,
+          await testAndLogConnection(client);
+
+          saveConnectionSecret(
+            connectionSecretPath,
+            connectionSecret,
+            program.opts().verbose,
           );
-
-          const dir = join(homedir(), ".alby-cli");
-          if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-          }
-          writeFileSync(CONNECTION_SECRET_PATH, connectionSecret, {
-            mode: 0o600,
-          });
-
-          if (alreadyExists) {
-            chmodSync(CONNECTION_SECRET_PATH, 0o600);
-          }
-
-          console.log(`Connection saved to ${CONNECTION_SECRET_PATH}`);
         });
       },
     );
