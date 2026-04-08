@@ -139,15 +139,10 @@ export async function getClient(program: Command): Promise<NWCClient> {
     connectionSecret = process.env.NWC_URL;
   }
 
-  if (!connectionSecret) {
-    try {
-      connectionSecret = readFileSync(connectionPath, "utf-8").trim();
-    } catch (error) {
-      const err = error as NodeJS.ErrnoException;
-      if (err.code !== "ENOENT") throw err;
-    }
-  }
-
+  // Check for pending connections BEFORE reading the existing connection file.
+  // When `auth --force` is used, the old connection-secret.key still exists.
+  // If we read it first, we'd skip the pending connection and silently use
+  // the old connection instead of completing the new one.
   if (!connectionSecret && existsSync(pendingPath)) {
     if (opts.verbose) {
       console.error("Pending connection found. Waiting for wallet approval...");
@@ -160,6 +155,15 @@ export async function getClient(program: Command): Promise<NWCClient> {
       opts.verbose,
       pendingRelayPath,
     );
+  }
+
+  if (!connectionSecret) {
+    try {
+      connectionSecret = readFileSync(connectionPath, "utf-8").trim();
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== "ENOENT") throw err;
+    }
   }
 
   if (!connectionSecret) {
