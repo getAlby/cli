@@ -9,7 +9,7 @@ export function registerFetch402Command(program: Command) {
       "Fetch a payment-protected resource (auto-detects L402, X402, MPP)",
     )
     .argument("<url>", "URL to fetch")
-    .option("-m, --method <method>", "HTTP method (GET, POST, etc.)")
+    .option("-X, --method <method>", "HTTP method (GET, POST, etc.)")
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
