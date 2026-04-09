@@ -6,7 +6,7 @@ export function registerDiscoverCommand(program: Command) {
   program
     .command("discover")
     .description(
-      "Discover Lightning-payable API services from the 402index.io directory",
+      "Search 402index.io for paid API services that accept bitcoin/lightning",
     )
     .option("-q, --query <text>", "Search query")
     .option(
@@ -19,13 +19,13 @@ export function registerDiscoverCommand(program: Command) {
     )
     .option(
       "--health <status>",
-      "Filter by health (Healthy, Degraded, Down, Unknown)",
-      "Healthy",
+      "Filter by health (healthy, degraded, down, unknown)",
+      "healthy",
     )
     .option(
       "-s, --sort <field>",
-      "Sort by (Reliability, Latency, Price, Name)",
-      "Reliability",
+      "Sort by (reliability, latency, price, name)",
+      "reliability",
     )
     .option("-l, --limit <number>", "Number of results", "10")
     .action(async (options) => {
