@@ -19,7 +19,19 @@ export async function discover(params: DiscoverParams) {
   url.searchParams.set("payment_asset", "BTC");
   url.searchParams.set("limit", String(requestedLimit));
 
-  const response = await fetch(url.toString());
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), { signal: controller.signal });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request to 402index.io timed out");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!response.ok) {
     throw new Error(
       `402index.io returned status ${response.status}: ${await response.text()}`,
