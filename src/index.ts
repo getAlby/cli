@@ -38,7 +38,7 @@ program
       "    $ npx @getalby/cli get-balance\n" +
       "    $ npx @getalby/cli pay-invoice --invoice lnbc...",
   )
-  .version("0.5.0")
+  .version("0.6.0")
   .option(
     "-w, --wallet-name <name>",
     "Use a named wallet's connection secret (~/.alby-cli/connection-secret-<name>.key)",
