@@ -10,10 +10,6 @@ export function registerDiscoverCommand(program: Command) {
     )
     .option("-q, --query <text>", "Search query")
     .option(
-      "-C, --category <category>",
-      "Filter by category (e.g. ai, data, bitcoin, nostr)",
-    )
-    .option(
       "-p, --protocol <protocol>",
       "Filter by protocol (L402, x402, MPP)",
     )
@@ -32,7 +28,6 @@ export function registerDiscoverCommand(program: Command) {
       await handleError(async () => {
         const result = await discover({
           query: options.query,
-          category: options.category,
           protocol: options.protocol,
           health: options.health,
           sort: options.sort,

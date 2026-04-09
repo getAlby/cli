@@ -1,6 +1,5 @@
 export interface DiscoverParams {
   query?: string;
-  category?: string;
   protocol?: string;
   health?: string;
   sort?: string;
@@ -12,7 +11,6 @@ export async function discover(params: DiscoverParams) {
   const requestedLimit = params.limit ?? 10;
 
   if (params.query) url.searchParams.set("q", params.query);
-  if (params.category) url.searchParams.set("category", params.category);
   if (params.protocol) url.searchParams.set("protocol", params.protocol);
   if (params.health) url.searchParams.set("health", params.health);
   if (params.sort) url.searchParams.set("sort", params.sort);
