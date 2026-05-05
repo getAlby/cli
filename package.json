@@ -36,7 +36,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@getalby/lightning-tools": "^8.0.0",
+    "@getalby/lightning-tools": "^8.1.1",
     "@getalby/sdk": "^7.0.0",
     "@noble/hashes": "^2.0.1",
     "commander": "^14.0.3",
