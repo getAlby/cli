@@ -168,7 +168,11 @@ export async function getClient(program: Command): Promise<NWCClient> {
 
   if (!connectionSecret) {
     throw new Error(
-      "No connection secret provided. Pass -c <secret or file path>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
+      "No wallet connection found. Run 'auth' or 'connect' first to set up a wallet:\n" +
+        "    npx @getalby/cli auth <wallet-url>          # e.g. https://my.albyhub.com\n" +
+        '    npx @getalby/cli connect "nostr+walletconnect://..."\n' +
+        "\n" +
+        "Already have a connection secret? Pass -c <secret or file path>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
     );
   }
 

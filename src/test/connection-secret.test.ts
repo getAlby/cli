@@ -58,7 +58,7 @@ describe("Connection Secret Handling", () => {
       NWC_URL: "",
     });
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("No connection secret provided");
+    expect(result.output.error).toContain("No wallet connection found");
   });
 
   test("errors when connection string is malformed", () => {
