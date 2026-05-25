@@ -64,7 +64,7 @@ describe("Connection Secret Handling", () => {
   test("errors when connection string is malformed", () => {
     const result = runCli<{ error: string }>(`-c "nostr+walletconnect://asdf" get-balance`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid connection secret");
+    expect(result.output.error).toContain("Invalid NWC URL");
   });
 
   test("reads connection secret from NWC_URL environment variable", () => {
