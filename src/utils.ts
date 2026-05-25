@@ -12,6 +12,11 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export const DEFAULT_RELAY_URLS = [
+  "wss://relay.getalby.com",
+  "wss://relay2.getalby.com",
+];
+
 function sanitizeWalletName(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
@@ -67,21 +72,28 @@ export async function testAndLogConnection(client: NWCClient) {
 export async function completePendingConnection(
   pendingSecretPath: string,
   connectionSecretPath: string,
-  relayUrl: string | undefined,
+  relayUrls: string[] | undefined,
   verbose: boolean,
   pendingRelayPath?: string,
 ): Promise<NWCClient> {
   const secret = readFileSync(pendingSecretPath, "utf-8").trim();
 
-  const DEFAULT_RELAY = "wss://relay.getalby.com/v1";
-  if (!relayUrl && pendingRelayPath && existsSync(pendingRelayPath)) {
-    relayUrl = readFileSync(pendingRelayPath, "utf-8").trim();
+  if (
+    (!relayUrls || relayUrls.length === 0) &&
+    pendingRelayPath &&
+    existsSync(pendingRelayPath)
+  ) {
+    relayUrls = readFileSync(pendingRelayPath, "utf-8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
   }
-  const resolvedRelay = relayUrl ?? DEFAULT_RELAY;
+  const resolvedRelays =
+    relayUrls && relayUrls.length > 0 ? relayUrls : DEFAULT_RELAY_URLS;
 
   const nwaClient = new NWAClient({
     appSecretKey: secret,
-    relayUrls: [resolvedRelay],
+    relayUrls: resolvedRelays,
     requestMethods: [],
   });
 
