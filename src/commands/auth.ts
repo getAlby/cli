@@ -1,9 +1,8 @@
 import { Command } from "commander";
 import { NWCClient } from "@getalby/sdk";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
+  getAlbyCliDir,
   getConnectionSecretPath,
   getPendingConnectionRelayPath,
   getPendingConnectionSecretPath,
@@ -92,7 +91,7 @@ export function registerAuthCommand(program: Command) {
             pubkey,
           ).toString();
 
-          const dir = join(homedir(), ".alby-cli");
+          const dir = getAlbyCliDir();
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }

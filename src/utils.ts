@@ -5,12 +5,17 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+
+export function getAlbyCliDir() {
+  return join(homedir(), ".alby-cli");
+}
 
 function sanitizeWalletName(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -20,21 +25,77 @@ export function getConnectionSecretPath(name?: string) {
   const filename = name
     ? `connection-secret-${sanitizeWalletName(name)}.key`
     : "connection-secret.key";
-  return join(homedir(), ".alby-cli", filename);
+  return join(getAlbyCliDir(), filename);
 }
 
 export function getPendingConnectionSecretPath(name?: string) {
   const filename = name
     ? `pending-connection-secret-${sanitizeWalletName(name)}.key`
     : "pending-connection-secret.key";
-  return join(homedir(), ".alby-cli", filename);
+  return join(getAlbyCliDir(), filename);
 }
 
 export function getPendingConnectionRelayPath(name?: string) {
   const filename = name
     ? `pending-connection-relay-${sanitizeWalletName(name)}.txt`
     : "pending-connection-relay.txt";
-  return join(homedir(), ".alby-cli", filename);
+  return join(getAlbyCliDir(), filename);
+}
+
+export interface WalletInfo {
+  /** Wallet name, or null for the default (unnamed) wallet. */
+  name: string | null;
+  isDefault: boolean;
+  /** "connected" if a connection secret exists, "pending" if awaiting wallet approval. */
+  status: "connected" | "pending";
+}
+
+/**
+ * List configured wallets by scanning ~/.alby-cli for connection secret files.
+ * Never reads or returns secret contents - only wallet names and status.
+ */
+export function listWallets(): WalletInfo[] {
+  const dir = getAlbyCliDir();
+  let files: string[];
+  try {
+    files = readdirSync(dir);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
+
+  // Map of wallet name (null for default) -> status. Connected takes precedence
+  // over pending so a re-authed wallet still shows as usable.
+  const wallets = new Map<string | null, "connected" | "pending">();
+
+  const patterns: { regex: RegExp; status: "connected" | "pending" }[] = [
+    { regex: /^connection-secret(?:-(.+))?\.key$/, status: "connected" },
+    { regex: /^pending-connection-secret(?:-(.+))?\.key$/, status: "pending" },
+  ];
+
+  for (const file of files) {
+    for (const { regex, status } of patterns) {
+      const match = file.match(regex);
+      if (!match) continue;
+      const name = match[1] ?? null;
+      if (status === "connected" || !wallets.has(name)) {
+        wallets.set(name, wallets.get(name) === "connected" ? "connected" : status);
+      }
+      break;
+    }
+  }
+
+  return [...wallets.entries()]
+    .map(([name, status]) => ({
+      name,
+      isDefault: name === null,
+      status,
+    }))
+    .sort((a, b) => {
+      if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+      return (a.name ?? "").localeCompare(b.name ?? "");
+    });
 }
 
 export function saveConnectionSecret(
@@ -43,7 +104,7 @@ export function saveConnectionSecret(
   verbose: boolean,
 ) {
   const alreadyExists = existsSync(path);
-  const dir = join(homedir(), ".alby-cli");
+  const dir = getAlbyCliDir();
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }

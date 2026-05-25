@@ -43,6 +43,12 @@ npx @getalby/cli --wallet-name work get-balance
 npx @getalby/cli --wallet-name personal pay-invoice --invoice lnbc...
 ```
 
+List the wallets you've configured (names and connection status only, never the secrets):
+
+```bash
+npx @getalby/cli list-wallets
+```
+
 ### Connection secret resolution (in order of priority)
 
 1. `--connection-secret` flag (value or path to file)
