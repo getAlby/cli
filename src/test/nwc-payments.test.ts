@@ -26,7 +26,7 @@ describe("NWC Payment Commands", () => {
 
     // Pay with sender wallet
     const paymentResult = runCli<PayInvoiceResult>(
-      `-c "${sender.nwcUrl}" pay-invoice -i "${invoiceResult.output.invoice}"`
+      `-c "${sender.nwcUrl}" pay-invoice "${invoiceResult.output.invoice}"`
     );
     expect(paymentResult.success).toBe(true);
     expect(paymentResult.output.preimage).toBeDefined();
@@ -41,7 +41,7 @@ describe("NWC Payment Commands", () => {
 
     // Pay the invoice first (unpaid invoices may not be found)
     const payResult = runCli<PayInvoiceResult>(
-      `-c "${sender.nwcUrl}" pay-invoice -i "${invoiceResult.output.invoice}"`
+      `-c "${sender.nwcUrl}" pay-invoice "${invoiceResult.output.invoice}"`
     );
     expect(payResult.success).toBe(true);
 

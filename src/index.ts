@@ -36,7 +36,7 @@ program
       "    $ npx @getalby/cli auth https://my.albyhub.com --app-name OpenClaw\n" +
       '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
       "    $ npx @getalby/cli get-balance\n" +
-      "    $ npx @getalby/cli pay-invoice --invoice lnbc...",
+      "    $ npx @getalby/cli pay-invoice lnbc...",
   )
   .version("0.6.1")
   .option(
