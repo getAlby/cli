@@ -6,13 +6,13 @@ export function registerPayInvoiceCommand(program: Command) {
   program
     .command("pay-invoice")
     .description("Pay a lightning invoice")
-    .requiredOption("-i, --invoice <bolt11>", "Invoice to pay")
+    .argument("<bolt11>", "Invoice to pay")
     .option("-a, --amount <sats>", "Amount (for zero-amount invoices)", parseInt)
-    .action(async (options) => {
+    .action(async (invoice, options) => {
       await handleError(async () => {
         const client = await getClient(program);
         const result = await payInvoice(client, {
-          invoice: options.invoice,
+          invoice,
           amount_in_sats: options.amount,
         });
         output(result);
