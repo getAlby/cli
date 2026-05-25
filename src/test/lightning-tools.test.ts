@@ -10,7 +10,7 @@ import type { MakeInvoiceResult } from "../tools/nwc/make_invoice.js";
 const exampleInvoice =
   "lnbc1u1p5hlrr8dqqnp4qwmtpr4p72ms7gnq3pkfk2876y2msvl33s3840dlp6xsv2w59dpscpp55utq6s8u5407namwt4jvhgsaf9fyszppjfwyxp7qsw6cyc8vxukqsp583usez9yhmkcavvvjz8cq56v3nglh2q37xkf4ufrgwxfrfjkm54s9qyysgqcqzp2xqyz5vqgtyysw64zt9sj6kfpqnekzwc37y2uyg0xdapgxqqth4uahff0x89sjfsvukjlllasg5dn05u2uha6qcvxz2y3ye5k7958qtes4pv4ggqtnjyky";
 
-const exampleLightningAddress = "nwc1769966844@getalby.com";
+const exampleLightningAddress = "nwc1779699236161@getalby.com";
 
 describe("Lightning Tools (no wallet required)", () => {
   test("fiat-to-sats converts USD to sats", () => {

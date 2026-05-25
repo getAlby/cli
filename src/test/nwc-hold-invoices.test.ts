@@ -66,7 +66,6 @@ describe("NWC HOLD Invoice Commands", () => {
         "-c",
         sender.nwcUrl,
         "pay-invoice",
-        "-i",
         holdResult.output.invoice,
       ],
       { stdio: ["ignore", "pipe", "pipe"] }
@@ -104,7 +103,6 @@ describe("NWC HOLD Invoice Commands", () => {
         "-c",
         sender.nwcUrl,
         "pay-invoice",
-        "-i",
         holdResult.output.invoice,
       ],
       { stdio: ["ignore", "pipe", "pipe"] }
