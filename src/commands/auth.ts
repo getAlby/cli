@@ -78,7 +78,8 @@ export function registerAuthCommand(program: Command) {
           if (existsSync(connectionSecretPath) && !options.force) {
             console.error(
               `Error: Already connected. Connection secret exists at ${connectionSecretPath}\n` +
-                `To overwrite, use --force.`,
+                `To overwrite, use --force.\n` +
+                `To connect an additional wallet, use --wallet-name <name>.`,
             );
             process.exit(1);
           }
