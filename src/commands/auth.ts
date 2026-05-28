@@ -8,8 +8,6 @@ import {
   getPendingConnectionRelayPath,
   getPendingConnectionSecretPath,
   handleError,
-  saveConnectionSecret,
-  testAndLogConnection,
 } from "../utils.js";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
