@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
+  DEFAULT_RELAY_URLS,
   getConnectionSecretPath,
   getPendingConnectionRelayPath,
   getPendingConnectionSecretPath,
@@ -28,8 +29,9 @@ export function registerAuthCommand(program: Command) {
     )
     .option(
       "--relay-url <url>",
-      "Relay URL for the pending connection",
-      "wss://relay.getalby.com/v1",
+      `Relay URL for the pending connection (repeat to use multiple relays, default: ${DEFAULT_RELAY_URLS.join(", ")})`,
+      (value: string, previous: string[]) => previous.concat([value]),
+      [] as string[],
     )
     .option("--force", "Overwrite existing connection secret")
     .option("--remove-pending", "Remove a pending connection and start fresh")
@@ -39,7 +41,7 @@ export function registerAuthCommand(program: Command) {
         options: {
           appName?: string;
           force?: boolean;
-          relayUrl: string;
+          relayUrl: string[];
           removePending?: boolean;
         },
       ) => {
@@ -83,6 +85,11 @@ export function registerAuthCommand(program: Command) {
             process.exit(1);
           }
 
+          const relayUrls =
+            options.relayUrl.length > 0
+              ? options.relayUrl
+              : DEFAULT_RELAY_URLS;
+
           const secret = bytesToHex(generateSecretKey());
           const pubkey = getPublicKey(hexToBytes(secret));
 
@@ -97,7 +104,11 @@ export function registerAuthCommand(program: Command) {
             mkdirSync(dir, { recursive: true });
           }
           writeFileSync(pendingSecretPath, secret, { mode: 0o600 });
-          writeFileSync(pendingRelayPath, options.relayUrl, { mode: 0o600 });
+          // Store one relay per line so multiple relays survive the
+          // round-trip to the completion step.
+          writeFileSync(pendingRelayPath, relayUrls.join("\n"), {
+            mode: 0o600,
+          });
 
           console.log(
             "Click the following URL to approve the connection in your wallet:\n" +
