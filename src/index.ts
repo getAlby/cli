@@ -40,6 +40,7 @@ program
       "    $ npx @getalby/cli pay-invoice lnbc...",
   )
   .version("0.6.1")
+  .configureHelp({ showGlobalOptions: true })
   .option(
     "-w, --wallet-name <name>",
     "Use a named wallet's connection secret (~/.alby-cli/connection-secret-<name>.key)",
