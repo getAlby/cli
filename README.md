@@ -40,7 +40,7 @@ Then pass `--wallet-name` to any command to use that wallet:
 
 ```bash
 npx @getalby/cli --wallet-name work get-balance
-npx @getalby/cli --wallet-name personal pay-invoice --invoice lnbc...
+npx @getalby/cli --wallet-name personal pay-invoice lnbc...
 ```
 
 List the wallets you've configured (names and connection status only, never the secrets):
@@ -111,7 +111,7 @@ npx @getalby/cli get-wallet-service-info
 npx @getalby/cli make-invoice --amount 1000 --description "Payment"
 
 # Pay an invoice
-npx @getalby/cli pay-invoice --invoice "lnbc..."
+npx @getalby/cli pay-invoice "lnbc..."
 
 # Send a keysend payment
 npx @getalby/cli pay-keysend --pubkey "02abc..." --amount 100

@@ -13,6 +13,11 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+export const DEFAULT_RELAY_URLS = [
+  "wss://relay.getalby.com",
+  "wss://relay2.getalby.com",
+];
+
 export function getAlbyCliDir() {
   return join(homedir(), ".alby-cli");
 }
@@ -80,7 +85,10 @@ export function listWallets(): WalletInfo[] {
       if (!match) continue;
       const name = match[1] ?? null;
       if (status === "connected" || !wallets.has(name)) {
-        wallets.set(name, wallets.get(name) === "connected" ? "connected" : status);
+        wallets.set(
+          name,
+          wallets.get(name) === "connected" ? "connected" : status,
+        );
       }
       break;
     }
@@ -128,21 +136,28 @@ export async function testAndLogConnection(client: NWCClient) {
 export async function completePendingConnection(
   pendingSecretPath: string,
   connectionSecretPath: string,
-  relayUrl: string | undefined,
+  relayUrls: string[] | undefined,
   verbose: boolean,
   pendingRelayPath?: string,
 ): Promise<NWCClient> {
   const secret = readFileSync(pendingSecretPath, "utf-8").trim();
 
-  const DEFAULT_RELAY = "wss://relay.getalby.com/v1";
-  if (!relayUrl && pendingRelayPath && existsSync(pendingRelayPath)) {
-    relayUrl = readFileSync(pendingRelayPath, "utf-8").trim();
+  if (
+    (!relayUrls || relayUrls.length === 0) &&
+    pendingRelayPath &&
+    existsSync(pendingRelayPath)
+  ) {
+    relayUrls = readFileSync(pendingRelayPath, "utf-8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
   }
-  const resolvedRelay = relayUrl ?? DEFAULT_RELAY;
+  const resolvedRelays =
+    relayUrls && relayUrls.length > 0 ? relayUrls : DEFAULT_RELAY_URLS;
 
   const nwaClient = new NWAClient({
     appSecretKey: secret,
-    relayUrls: [resolvedRelay],
+    relayUrls: resolvedRelays,
     requestMethods: [],
   });
 
@@ -229,7 +244,11 @@ export async function getClient(program: Command): Promise<NWCClient> {
 
   if (!connectionSecret) {
     throw new Error(
-      "No connection secret provided. Pass -c <secret or file path>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
+      "No wallet connection found. Run 'auth' or 'connect' first to set up a wallet:\n" +
+        "    npx @getalby/cli auth <wallet-url>          # e.g. https://my.albyhub.com\n" +
+        '    npx @getalby/cli connect "nostr+walletconnect://..."\n' +
+        "\n" +
+        "Already have a connection secret? Pass -c <secret or file path>, set NWC_URL, use --wallet-name <name>, or create ~/.alby-cli/connection-secret.key",
     );
   }
 
