@@ -1,16 +1,13 @@
 import { Command } from "commander";
 import { NWCClient } from "@getalby/sdk";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
+  getAlbyCliDir,
   DEFAULT_RELAY_URLS,
   getConnectionSecretPath,
   getPendingConnectionRelayPath,
   getPendingConnectionSecretPath,
   handleError,
-  saveConnectionSecret,
-  testAndLogConnection,
 } from "../utils.js";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
@@ -86,9 +83,7 @@ export function registerAuthCommand(program: Command) {
           }
 
           const relayUrls =
-            options.relayUrl.length > 0
-              ? options.relayUrl
-              : DEFAULT_RELAY_URLS;
+            options.relayUrl.length > 0 ? options.relayUrl : DEFAULT_RELAY_URLS;
 
           const secret = bytesToHex(generateSecretKey());
           const pubkey = getPublicKey(hexToBytes(secret));
@@ -99,7 +94,7 @@ export function registerAuthCommand(program: Command) {
             pubkey,
           ).toString();
 
-          const dir = join(homedir(), ".alby-cli");
+          const dir = getAlbyCliDir();
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }
@@ -118,9 +113,7 @@ export function registerAuthCommand(program: Command) {
           const retryCmd = walletName
             ? `npx @getalby/cli get-balance --wallet-name ${walletName}`
             : `npx @getalby/cli get-balance`;
-          console.log(
-            `\nOnce approved, run any command, e.g.:\n  ${retryCmd}`,
-          );
+          console.log(`\nOnce approved, run any command, e.g.:\n  ${retryCmd}`);
         });
       },
     );

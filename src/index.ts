@@ -23,6 +23,7 @@ import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/re
 import { registerFetch402Command } from "./commands/fetch.js";
 import { registerConnectCommand } from "./commands/connect.js";
 import { registerAuthCommand } from "./commands/auth.js";
+import { registerListWalletsCommand } from "./commands/list-wallets.js";
 import { registerDiscoverCommand } from "./commands/discover.js";
 
 const program = new Command();
@@ -105,5 +106,6 @@ registerDiscoverCommand(program);
 program.commandsGroup("Setup:");
 registerAuthCommand(program);
 registerConnectCommand(program);
+registerListWalletsCommand(program);
 
 program.parse();
