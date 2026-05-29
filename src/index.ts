@@ -21,6 +21,7 @@ import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetch402Command } from "./commands/fetch.js";
+import { registerPayCryptoCommand } from "./commands/pay-crypto.js";
 import { registerConnectCommand } from "./commands/connect.js";
 import { registerAuthCommand } from "./commands/auth.js";
 import { registerListWalletsCommand } from "./commands/list-wallets.js";
@@ -98,6 +99,10 @@ registerRequestInvoiceFromLightningAddressCommand(program);
 // Register fetch command for payment-protected resources
 program.commandsGroup("HTTP 402 Payments (requires wallet connection):");
 registerFetch402Command(program);
+
+// Register cross-currency payments (Lightning → EVM via atomic swap)
+program.commandsGroup("Cross-Currency Payments (requires wallet connection):");
+registerPayCryptoCommand(program);
 
 // Register service discovery
 program.commandsGroup("Service Discovery:");
