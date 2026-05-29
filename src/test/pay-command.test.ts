@@ -58,8 +58,15 @@ describe("pay command — destination detection", () => {
   });
 
   test("--currency on a BOLT-11 invoice is rejected as not applicable", () => {
-    // Use a syntactically-valid-ish invoice prefix; detection only checks `lnbc`.
     const result = runCli<ErrorOutput>(`pay lnbc1junk --currency USDT`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("not applicable to invoice payment");
+  });
+
+  test("testnet/signet invoice prefixes (lntb...) are recognized as invoices", () => {
+    // Same path as the lnbc test above — exercises that lntb is treated as
+    // an invoice (not falling through to the unknown-destination error).
+    const result = runCli<ErrorOutput>(`pay lntb1junk --currency USDT`);
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("not applicable to invoice payment");
   });

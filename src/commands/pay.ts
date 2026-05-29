@@ -21,7 +21,8 @@ type TransactionMetadata = {
 
 function detectDestinationType(destination: string): DestinationType | null {
   if (/^0x[0-9a-fA-F]{40}$/.test(destination)) return "crypto";
-  if (/^lnbc/i.test(destination)) return "invoice";
+  // BOLT-11 prefixes: lnbc = mainnet, lntb = testnet/signet, lnbcrt = regtest, lntbs = signet (e.g. mutinynet).
+  if (/^ln(bcrt|tbs|bc|tb)/i.test(destination)) return "invoice";
   if (LN_ADDRESS_REGEX.test(destination)) return "lightning-address";
   if (/^0[23][0-9a-fA-F]{64}$/.test(destination)) return "keysend";
   return null;
@@ -64,7 +65,7 @@ export function registerPayCommand(program: Command) {
     .description(
       "Pay any supported destination — auto-detects type from the destination string.\n\n" +
         "Supported destinations:\n" +
-        "  - BOLT-11 invoice (lnbc...): no extra args (use --amount only for zero-amount invoices)\n" +
+        "  - BOLT-11 invoice (lnbc... / lntb... / lnbcrt... / lntbs...): no extra args (use --amount only for zero-amount invoices)\n" +
         "  - Lightning address (user@domain): requires --amount (sats); optional --comment\n" +
         "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)\n" +
         "  - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network",
@@ -110,7 +111,7 @@ export function registerPayCommand(program: Command) {
           throw new Error(
             `Could not detect destination type for: ${destination}\n` +
               "Expected one of:\n" +
-              "  - BOLT-11 invoice (starts with lnbc)\n" +
+              "  - BOLT-11 invoice (starts with lnbc, lntb, lnbcrt, or lntbs)\n" +
               "  - Lightning address (user@domain)\n" +
               "  - Node pubkey for keysend (66-char hex, compressed secp256k1: starts with 02/03)\n" +
               "  - EVM address (0x + 40 hex characters)",
