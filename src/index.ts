@@ -44,7 +44,7 @@ program
       "    $ npx @getalby/cli pay alice@getalby.com --amount 100\n" +
       '    $ npx @getalby/cli receive --amount 2100 --description "Coffee"',
   )
-  .version("0.6.1")
+  .version("0.7.0")
   .configureHelp({ showGlobalOptions: true })
   .option(
     "-w, --wallet-name <name>",
