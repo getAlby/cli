@@ -124,7 +124,7 @@ npx @getalby/cli pay "lnbc..."
 npx @getalby/cli pay alice@getalby.com --amount 100 --comment "hi"
 #   - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)
 npx @getalby/cli pay 02abc... --amount 100
-#   - EVM address (0x...): atomic swap, requires --amount, --currency, and --network
+#   - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network
 npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum
 
 # The dedicated `pay-invoice`, `pay-keysend`, and `pay-crypto` commands are

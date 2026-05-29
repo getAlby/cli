@@ -67,7 +67,7 @@ export function registerPayCommand(program: Command) {
         "  - BOLT-11 invoice (lnbc...): no extra args (use --amount only for zero-amount invoices)\n" +
         "  - Lightning address (user@domain): requires --amount (sats); optional --comment\n" +
         "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)\n" +
-        "  - EVM address (0x...): atomic swap, requires --amount, --currency, and --network",
+        "  - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network",
     )
     .argument(
       "<destination>",
