@@ -67,7 +67,7 @@ export function registerPayCommand(program: Command) {
         "  - BOLT-11 invoice (lnbc...): no extra args (use --amount only for zero-amount invoices)\n" +
         "  - Lightning address (user@domain): requires --amount (sats); optional --comment\n" +
         "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)\n" +
-        "  - EVM address (0x...): atomic swap, requires --amount; optional --currency, --network",
+        "  - EVM address (0x...): atomic swap, requires --amount, --currency, and --network",
     )
     .argument(
       "<destination>",
@@ -87,11 +87,13 @@ export function registerPayCommand(program: Command) {
       "--tlv-records <json>",
       "TLV records for keysend, as JSON array [{type, value}]",
     )
-    .option("--currency <name>", "Target currency for crypto payments", "USDC")
+    .option(
+      "--currency <name>",
+      "Target currency for crypto payments (required for EVM destinations)",
+    )
     .option(
       "--network <name>",
-      "Target network for crypto payments (chain name or id)",
-      "arbitrum",
+      "Target network for crypto payments — chain name or id (required for EVM destinations)",
     )
     .addHelpText(
       "after",
@@ -206,6 +208,14 @@ export function registerPayCommand(program: Command) {
             }
             if (!Number.isFinite(options.amount) || options.amount <= 0) {
               throw new Error(`Invalid --amount: ${options.amount}`);
+            }
+            if (!options.currency) {
+              throw new Error("Crypto payments require --currency <name>");
+            }
+            if (!options.network) {
+              throw new Error(
+                "Crypto payments require --network <chain-name-or-id>",
+              );
             }
             if (!isPlausibleEvmAddress(destination)) {
               throw new Error(

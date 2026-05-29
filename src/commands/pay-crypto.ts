@@ -20,8 +20,11 @@ export function registerPayCryptoCommand(program: Command) {
       "Amount to send in target-currency units (e.g. 10 = 10 USDC)",
       Number,
     )
-    .option("--currency <name>", "Target currency", "USDC")
-    .option("--network <name>", "Target network (chain name or id, e.g. arbitrum / 42161)", "arbitrum")
+    .requiredOption("--currency <name>", "Target currency (e.g. USDC)")
+    .requiredOption(
+      "--network <name>",
+      "Target network (chain name or id, e.g. arbitrum / 42161)",
+    )
     .addHelpText(
       "after",
       "\nExample:\n" +

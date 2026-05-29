@@ -41,6 +41,22 @@ describe("pay command — destination detection", () => {
     expect(result.output.error).toContain("--amount");
   });
 
+  test("EVM address without --currency is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay 0x000000000000000000000000000000000000dead --amount 10 --network arbitrum`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--currency");
+  });
+
+  test("EVM address without --network is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay 0x000000000000000000000000000000000000dead --amount 10 --currency USDC`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--network");
+  });
+
   test("--currency on a BOLT-11 invoice is rejected as not applicable", () => {
     // Use a syntactically-valid-ish invoice prefix; detection only checks `lnbc`.
     const result = runCli<ErrorOutput>(`pay lnbc1junk --currency USDT`);

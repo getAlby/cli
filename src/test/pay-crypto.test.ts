@@ -140,7 +140,7 @@ describe("pay-crypto validation", () => {
   describe("malformed EVM address", () => {
     test("completely non-hex string is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto notanaddress --amount 10",
+        "pay-crypto notanaddress --amount 10 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("address does not look valid");
@@ -148,7 +148,7 @@ describe("pay-crypto validation", () => {
 
     test("too-short hex with 0x prefix is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto 0xabc --amount 10",
+        "pay-crypto 0xabc --amount 10 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("address does not look valid");
@@ -156,7 +156,7 @@ describe("pay-crypto validation", () => {
 
     test("40-char hex without 0x prefix is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto 000000000000000000000000000000000000dead --amount 10",
+        "pay-crypto 000000000000000000000000000000000000dead --amount 10 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("address does not look valid");
@@ -166,7 +166,7 @@ describe("pay-crypto validation", () => {
   describe("invalid amount", () => {
     test("--amount 0 is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto 0x000000000000000000000000000000000000dead --amount 0",
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount 0 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("Invalid --amount");
@@ -174,7 +174,7 @@ describe("pay-crypto validation", () => {
 
     test("--amount -1 is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto 0x000000000000000000000000000000000000dead --amount -1",
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount -1 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("Invalid --amount");
@@ -182,10 +182,28 @@ describe("pay-crypto validation", () => {
 
     test("--amount abc (NaN) is rejected", async () => {
       const result = await runCliAsync<ErrorOutput>(
-        "pay-crypto 0x000000000000000000000000000000000000dead --amount abc",
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount abc --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("Invalid --amount");
+    });
+  });
+
+  describe("missing required options", () => {
+    test("missing --currency is rejected", async () => {
+      const result = await runCliAsync<ErrorOutput>(
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount 10 --network arbitrum",
+      );
+      expect(result.success).toBe(false);
+      expect(result.output.error).toContain("--currency");
+    });
+
+    test("missing --network is rejected", async () => {
+      const result = await runCliAsync<ErrorOutput>(
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount 10 --currency USDC",
+      );
+      expect(result.success).toBe(false);
+      expect(result.output.error).toContain("--network");
     });
   });
 
