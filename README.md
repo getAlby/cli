@@ -40,7 +40,7 @@ Then pass `--wallet-name` to any command to use that wallet:
 
 ```bash
 npx @getalby/cli --wallet-name work get-balance
-npx @getalby/cli --wallet-name personal pay-invoice lnbc...
+npx @getalby/cli --wallet-name personal pay lnbc...
 ```
 
 List the wallets you've configured (names and connection status only, never the secrets):
@@ -110,11 +110,25 @@ npx @getalby/cli get-wallet-service-info
 # Create an invoice
 npx @getalby/cli make-invoice --amount 1000 --description "Payment"
 
-# Pay an invoice
-npx @getalby/cli pay-invoice "lnbc..."
+# Get paid — returns the wallet's lightning address, or a BOLT-11 invoice if --amount is given.
+#   - With no args: returns the wallet's lightning address (errors if the wallet has none)
+npx @getalby/cli receive
+#   - With --amount: returns a BOLT-11 invoice for that amount; --description is optional
+npx @getalby/cli receive --amount 100 --description "coffee"
 
-# Send a keysend payment
-npx @getalby/cli pay-keysend --pubkey "02abc..." --amount 100
+# Pay any supported destination — auto-detects type from the destination string.
+# Required args depend on the destination type:
+#   - BOLT-11 invoice (lnbc...): no extra args (use --amount only for zero-amount invoices)
+npx @getalby/cli pay "lnbc..."
+#   - Lightning address (user@domain): requires --amount (sats); optional --comment
+npx @getalby/cli pay alice@getalby.com --amount 100 --comment "hi"
+#   - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)
+npx @getalby/cli pay 02abc... --amount 100
+#   - EVM address (0x...): atomic swap, requires --amount; optional --currency, --network
+npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum
+
+# The dedicated `pay-invoice`, `pay-keysend`, and `pay-crypto` commands are
+# still available if you want to constrain the destination type explicitly.
 
 # Look up an invoice by payment hash
 npx @getalby/cli lookup-invoice --payment-hash "abc123..."
