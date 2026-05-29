@@ -11,7 +11,7 @@ export function registerPayCryptoCommand(program: Command) {
   program
     .command("pay-crypto")
     .description(
-      "Pay any supported crypto or stablecoin address from your Lightning wallet using an atomic swap (powered by Lendaswap).\n\n" +
+      "Pay any supported crypto or stablecoin address from your Bitcoin lightning wallet using an atomic swap (powered by Lendaswap).\n\n" +
         "Supported currencies and networks are sourced live from the Lendaswap API; if a pair is not available you'll get an error listing what is.",
     )
     .argument("<address>", "Recipient address on the target network")
