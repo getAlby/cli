@@ -12,7 +12,7 @@ export function registerPayCryptoCommand(program: Command) {
     .command("pay-crypto")
     .description(
       "Pay any supported crypto or stablecoin address from your bitcoin lightning wallet.\n\n" +
-        "Supported currencies and networks are sourced live from the Lendaswap API; if a pair is not available you'll get an error listing what is.",
+        "If the requested currency/network pair isn't supported you'll get an error listing the pairs that are.",
     )
     .argument("<address>", "Recipient address on the target network")
     .requiredOption(
@@ -20,8 +20,11 @@ export function registerPayCryptoCommand(program: Command) {
       "Amount to send in target-currency units (e.g. 10 = 10 USDC)",
       Number,
     )
-    .option("--currency <name>", "Target currency", "USDC")
-    .option("--network <name>", "Target network (chain name or id, e.g. arbitrum / 42161)", "arbitrum")
+    .requiredOption("--currency <name>", "Target currency (e.g. USDC)")
+    .requiredOption(
+      "--network <name>",
+      "Target network (chain name or id, e.g. arbitrum / 42161)",
+    )
     .addHelpText(
       "after",
       "\nExample:\n" +

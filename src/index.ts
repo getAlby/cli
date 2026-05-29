@@ -9,6 +9,8 @@ import { registerMakeInvoiceCommand } from "./commands/make-invoice.js";
 import { registerMakeHoldInvoiceCommand } from "./commands/make-hold-invoice.js";
 import { registerSettleHoldInvoiceCommand } from "./commands/settle-hold-invoice.js";
 import { registerCancelHoldInvoiceCommand } from "./commands/cancel-hold-invoice.js";
+import { registerPayCommand } from "./commands/pay.js";
+import { registerReceiveCommand } from "./commands/receive.js";
 import { registerPayInvoiceCommand } from "./commands/pay-invoice.js";
 import { registerPayKeysendCommand } from "./commands/pay-keysend.js";
 import { registerLookupInvoiceCommand } from "./commands/lookup-invoice.js";
@@ -38,7 +40,9 @@ program
       "    $ npx @getalby/cli auth https://my.albyhub.com --app-name OpenClaw\n" +
       '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
       "    $ npx @getalby/cli get-balance\n" +
-      "    $ npx @getalby/cli pay-invoice lnbc...",
+      "    $ npx @getalby/cli pay lnbc...\n" +
+      "    $ npx @getalby/cli pay alice@getalby.com --amount 100\n" +
+      '    $ npx @getalby/cli receive --amount 2100 --description "Coffee"',
   )
   .version("0.6.1")
   .configureHelp({ showGlobalOptions: true })
@@ -70,6 +74,8 @@ Security:
 
 // Register common wallet commands
 program.commandsGroup("Wallet Commands (requires wallet connection):");
+registerPayCommand(program);
+registerReceiveCommand(program);
 registerGetBalanceCommand(program);
 registerGetBudgetCommand(program);
 registerGetInfoCommand(program);
