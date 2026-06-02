@@ -16,7 +16,7 @@ export function registerPayCryptoCommand(program: Command) {
     )
     .argument("<address>", "Recipient address on the target network")
     .requiredOption(
-      "-a, --amount <number>",
+      "--amount <number>",
       "Amount to send in target-currency units (e.g. 10 = 10 USDC)",
       Number,
     )

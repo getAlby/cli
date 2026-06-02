@@ -8,7 +8,7 @@ import {
   payCrypto,
   findSupportedPair,
 } from "../lendaswap/swap.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 type DestinationType = "crypto" | "invoice" | "lightning-address" | "keysend";
 
@@ -29,13 +29,14 @@ function detectDestinationType(destination: string): DestinationType | null {
 }
 
 const ALLOWED_OPTS: Record<DestinationType, ReadonlyArray<string>> = {
-  invoice: ["amount"],
-  "lightning-address": ["amount", "comment"],
-  keysend: ["amount", "preimage", "tlvRecords"],
+  invoice: ["amountSats"],
+  "lightning-address": ["amountSats", "comment"],
+  keysend: ["amountSats", "preimage", "tlvRecords"],
   crypto: ["amount", "currency", "network"],
 };
 
 const OPT_FLAG: Record<string, string> = {
+  amountSats: "--amount-sats",
   amount: "--amount",
   comment: "--comment",
   preimage: "--preimage",
@@ -52,11 +53,24 @@ function rejectUnusedOpts(
   const allowed = new Set(ALLOWED_OPTS[type]);
   const used = Object.keys(options).filter((k) => providedKeys.has(k));
   const stray = used.filter((k) => !allowed.has(k));
-  if (stray.length > 0) {
+  if (stray.length === 0) {
+    return;
+  }
+  // Mixing up the two amount flags is the most likely mistake — point the
+  // user straight at the correct one instead of a bare "not applicable".
+  if (stray.includes("amount") && type !== "crypto") {
     throw new Error(
-      `Option${stray.length > 1 ? "s" : ""} ${stray.map((k) => OPT_FLAG[k] ?? `--${k}`).join(", ")} not applicable to ${type} payment`,
+      `Option --amount is not valid for ${type} payments — use --amount-sats (sats) instead`,
     );
   }
+  if (stray.includes("amountSats") && type === "crypto") {
+    throw new Error(
+      "Option --amount-sats is not valid for crypto payments — use --amount with --currency instead",
+    );
+  }
+  throw new Error(
+    `Option${stray.length > 1 ? "s" : ""} ${stray.map((k) => OPT_FLAG[k] ?? `--${k}`).join(", ")} not applicable to ${type} payment`,
+  );
 }
 
 export function registerPayCommand(program: Command) {
@@ -65,9 +79,9 @@ export function registerPayCommand(program: Command) {
     .description(
       "Pay any supported destination — auto-detects type from the destination string.\n\n" +
         "Supported destinations:\n" +
-        "  - BOLT-11 invoice (lnbc... / lntb... / lnbcrt... / lntbs...): no extra args (use --amount only for zero-amount invoices)\n" +
-        "  - Lightning address (user@domain): requires --amount (sats); optional --comment\n" +
-        "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)\n" +
+        "  - BOLT-11 invoice (lnbc... / lntb... / lnbcrt... / lntbs...): no extra args (use --amount-sats only for zero-amount invoices)\n" +
+        "  - Lightning address (user@domain): requires --amount-sats; optional --comment\n" +
+        "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount-sats\n" +
         "  - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network",
     )
     .argument(
@@ -75,8 +89,13 @@ export function registerPayCommand(program: Command) {
       "Invoice, lightning address, node pubkey, or EVM address",
     )
     .option(
-      "-a, --amount <number>",
-      "Amount — sats for lightning destinations, target-currency units for crypto (e.g. 10 = 10 USDC)",
+      "--amount-sats <sats>",
+      "Amount in sats — for lightning destinations (invoice, lightning address, keysend)",
+      parseSatsOption(),
+    )
+    .option(
+      "--amount <number>",
+      "Amount in target-currency units for crypto, e.g. 10 = 10 USDC (use with --currency)",
       Number,
     )
     .option("--comment <text>", "Comment for lightning address payments")
@@ -100,8 +119,8 @@ export function registerPayCommand(program: Command) {
       "after",
       "\nExamples:\n" +
         "  $ npx @getalby/cli pay lnbc1...\n" +
-        "  $ npx @getalby/cli pay alice@getalby.com --amount 100 --comment hi\n" +
-        "  $ npx @getalby/cli pay 02aabb... --amount 100\n" +
+        "  $ npx @getalby/cli pay alice@getalby.com --amount-sats 100 --comment hi\n" +
+        "  $ npx @getalby/cli pay 02aabb... --amount-sats 100\n" +
         "  $ npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum\n",
     )
     .action(async (destination: string, options, cmd: Command) => {
@@ -132,37 +151,26 @@ export function registerPayCommand(program: Command) {
 
         switch (type) {
           case "invoice": {
-            if (
-              options.amount !== undefined &&
-              !Number.isInteger(options.amount)
-            ) {
-              throw new Error(
-                `Invalid --amount: must be an integer number of sats`,
-              );
-            }
+            // --amount-sats is optional here (only for zero-amount invoices)
+            // and, when present, already validated by parseSatsOption.
             const client = await getClient(program);
             const result = await payInvoice(client, {
               invoice: destination,
-              amount_in_sats: options.amount,
+              amount_in_sats: options.amountSats,
               metadata: {},
             });
             output(result);
             return;
           }
           case "lightning-address": {
-            if (options.amount === undefined) {
+            if (options.amountSats === undefined) {
               throw new Error(
-                "Lightning address payments require --amount <sats>",
-              );
-            }
-            if (!Number.isInteger(options.amount) || options.amount <= 0) {
-              throw new Error(
-                `Invalid --amount: must be a positive integer number of sats`,
+                "Lightning address payments require --amount-sats <sats>",
               );
             }
             const invoice = await requestInvoiceFromLightningAddress({
               lightning_address: destination,
-              amount_in_sats: options.amount,
+              amount_in_sats: options.amountSats,
               comment: options.comment,
             });
             const client = await getClient(program);
@@ -181,13 +189,8 @@ export function registerPayCommand(program: Command) {
             return;
           }
           case "keysend": {
-            if (options.amount === undefined) {
-              throw new Error("Keysend payments require --amount <sats>");
-            }
-            if (!Number.isInteger(options.amount) || options.amount <= 0) {
-              throw new Error(
-                `Invalid --amount: must be a positive integer number of sats`,
-              );
+            if (options.amountSats === undefined) {
+              throw new Error("Keysend payments require --amount-sats <sats>");
             }
             let tlvRecords: TlvRecord[] | undefined;
             if (options.tlvRecords) {
@@ -196,7 +199,7 @@ export function registerPayCommand(program: Command) {
             const client = await getClient(program);
             const result = await payKeysend(client, {
               pubkey: destination,
-              amount_in_sats: options.amount,
+              amount_in_sats: options.amountSats,
               preimage: options.preimage,
               tlv_records: tlvRecords,
             });

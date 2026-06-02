@@ -41,10 +41,10 @@ program
       '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
       "    $ npx @getalby/cli get-balance\n" +
       "    $ npx @getalby/cli pay lnbc...\n" +
-      "    $ npx @getalby/cli pay alice@getalby.com --amount 100\n" +
-      '    $ npx @getalby/cli receive --amount 2100 --description "Coffee"',
+      "    $ npx @getalby/cli pay alice@getalby.com --amount-sats 100\n" +
+      '    $ npx @getalby/cli receive --amount-sats 2100 --description "Coffee"',
   )
-  .version("0.7.0")
+  .version("0.8.0")
   .configureHelp({ showGlobalOptions: true })
   .option(
     "-w, --wallet-name <name>",

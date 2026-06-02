@@ -108,22 +108,22 @@ npx @getalby/cli get-info
 npx @getalby/cli get-wallet-service-info
 
 # Create an invoice
-npx @getalby/cli make-invoice --amount 1000 --description "Payment"
+npx @getalby/cli make-invoice --amount-sats 1000 --description "Payment"
 
-# Get paid — returns the wallet's lightning address, or a BOLT-11 invoice if --amount is given.
+# Get paid — returns the wallet's lightning address, or a BOLT-11 invoice if --amount-sats is given.
 #   - With no args: returns the wallet's lightning address (errors if the wallet has none)
 npx @getalby/cli receive
-#   - With --amount: returns a BOLT-11 invoice for that amount; --description is optional
-npx @getalby/cli receive --amount 100 --description "coffee"
+#   - With --amount-sats: returns a BOLT-11 invoice for that amount; --description is optional
+npx @getalby/cli receive --amount-sats 100 --description "coffee"
 
 # Pay any supported destination — auto-detects type from the destination string.
 # Required args depend on the destination type:
-#   - BOLT-11 invoice (lnbc...): no extra args (use --amount only for zero-amount invoices)
+#   - BOLT-11 invoice (lnbc...): no extra args (use --amount-sats only for zero-amount invoices)
 npx @getalby/cli pay "lnbc..."
-#   - Lightning address (user@domain): requires --amount (sats); optional --comment
-npx @getalby/cli pay alice@getalby.com --amount 100 --comment "hi"
-#   - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount (sats)
-npx @getalby/cli pay 02abc... --amount 100
+#   - Lightning address (user@domain): requires --amount-sats; optional --comment
+npx @getalby/cli pay alice@getalby.com --amount-sats 100 --comment "hi"
+#   - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount-sats
+npx @getalby/cli pay 02abc... --amount-sats 100
 #   - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network
 npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum
 
@@ -149,7 +149,7 @@ npx @getalby/cli fetch "https://example.com/api"
 npx @getalby/cli fetch "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
 
 # Fetch with a custom max amount (default: 5000 sats, 0 = no limit)
-npx @getalby/cli fetch "https://example.com/api" --max-amount 1000
+npx @getalby/cli fetch "https://example.com/api" --max-amount-sats 1000
 
 # Wait for a payment notification
 npx @getalby/cli wait-for-payment --payment-hash "abc123..."
@@ -161,7 +161,7 @@ HOLD invoices allow you to accept payments conditionally - the payment is held u
 
 ```bash
 # Create a HOLD invoice (you provide the payment hash)
-npx @getalby/cli make-hold-invoice --amount 1000 --payment-hash "abc123..."
+npx @getalby/cli make-hold-invoice --amount-sats 1000 --payment-hash "abc123..."
 
 # Settle a HOLD invoice (claim the payment)
 npx @getalby/cli settle-hold-invoice --preimage "def456..."
@@ -179,7 +179,7 @@ These commands don't require a wallet connection:
 npx @getalby/cli fiat-to-sats --currency USD --amount 10
 
 # Convert sats to USD
-npx @getalby/cli sats-to-fiat --amount 1000 --currency USD
+npx @getalby/cli sats-to-fiat --amount-sats 1000 --currency USD
 
 # Parse a BOLT-11 invoice
 npx @getalby/cli parse-invoice --invoice "lnbc..."
@@ -188,7 +188,7 @@ npx @getalby/cli parse-invoice --invoice "lnbc..."
 npx @getalby/cli verify-preimage --invoice "lnbc..." --preimage "abc123..."
 
 # Request invoice from lightning address
-npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby.com" --amount 1000
+npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby.com" --amount-sats 1000
 ```
 
 ## Command Reference

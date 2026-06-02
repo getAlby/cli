@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { fetch402 } from "../tools/lightning/fetch.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 export function registerFetch402Command(program: Command) {
   program
@@ -13,9 +13,12 @@ export function registerFetch402Command(program: Command) {
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
-      "--max-amount <sats>",
+      "--max-amount-sats <sats>",
       "Maximum amount in sats to pay per request. Aborts if the endpoint requests more. (default: 5000, 0 = no limit)",
-      parseInt,
+      // allowZero: 0 is the documented "no limit" sentinel here. Strict parsing
+      // still rejects malformed values (e.g. "0.5", "abc") so a typo can't
+      // silently coerce to 0 and disable the spend cap.
+      parseSatsOption(true),
     )
     .action(async (url, options) => {
       await handleError(async () => {
@@ -25,7 +28,7 @@ export function registerFetch402Command(program: Command) {
           method: options.method,
           body: options.body,
           headers: options.headers ? JSON.parse(options.headers) : undefined,
-          maxAmountSats: options.maxAmount,
+          maxAmountSats: options.maxAmountSats,
         });
         output(result);
       });
