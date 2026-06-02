@@ -31,7 +31,7 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
 
   const result = await fetch402Lib(params.url, requestOptions, {
     wallet: client,
-    maxAmount: maxAmountSats || undefined,
+    maxAmount: maxAmountSats,
   });
 
   const responseContent = await result.text();

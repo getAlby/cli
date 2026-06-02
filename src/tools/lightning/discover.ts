@@ -15,7 +15,7 @@ export async function discover(params: DiscoverParams) {
   if (params.health) url.searchParams.set("health", params.health);
   if (params.sort) url.searchParams.set("sort", params.sort);
 
-  // Filter to BTC (Lightning) services server-side
+  // Filter to BTC (lightning) services server-side
   url.searchParams.set("payment_asset", "BTC");
   url.searchParams.set("limit", String(requestedLimit));
 

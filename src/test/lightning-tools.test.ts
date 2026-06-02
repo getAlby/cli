@@ -34,8 +34,9 @@ describe("Lightning Tools (no wallet required)", () => {
     expect(result.output.amount_in_sats).toBeGreaterThan(0);
   });
 
-  // --amount is parsed with Number (not parseFloat), so partial/invalid input
-  // is rejected rather than silently truncated (e.g. "10abc" → 10).
+  // --amount is parsed by the shared strict parser (parseAmountNumber), so
+  // partial/invalid input is rejected rather than silently truncated (e.g.
+  // "10abc" → 10), as are non-positive values.
   test.each(["10abc", "abc", "0", "-5"])(
     "fiat-to-sats rejects invalid --amount %s",
     (value) => {
@@ -43,13 +44,13 @@ describe("Lightning Tools (no wallet required)", () => {
         `fiat-to-sats --amount ${value} --currency USD`,
       );
       expect(result.success).toBe(false);
-      expect(result.output.error).toContain("Invalid --amount");
+      expect(result.output.error).toContain("Amount must be a positive number");
     },
   );
 
   test("sats-to-fiat converts sats to USD", () => {
     const result = runCli<SatsToFiatResult>(
-      "sats-to-fiat --amount-sats 1000 --currency USD",
+      "sats-to-fiat --amount 1000 --unit sats --currency USD",
     );
     expect(result.success).toBe(true);
     expect(result.output.amount).toBeTypeOf("number");
@@ -78,7 +79,7 @@ describe("Lightning Tools (no wallet required)", () => {
 
   test("request-invoice-from-lightning-address requests invoice from lightning address", async () => {
     const result = runCli<RequestInvoiceFromLightningAddressResult>(
-      `request-invoice-from-lightning-address -a "${exampleLightningAddress}" --amount-sats 100`,
+      `request-invoice-from-lightning-address -a "${exampleLightningAddress}" --amount 100 --currency BTC --unit sats --network lightning`,
     );
     expect(result.success).toBe(true);
     expect(result.output.paymentRequest.toLowerCase()).toMatch(/^lnbc/);

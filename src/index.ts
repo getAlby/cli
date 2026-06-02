@@ -41,8 +41,9 @@ program
       '    $ npx @getalby/cli connect "nostr+walletconnect://..."\n' +
       "    $ npx @getalby/cli get-balance\n" +
       "    $ npx @getalby/cli pay lnbc...\n" +
-      "    $ npx @getalby/cli pay alice@getalby.com --amount-sats 100\n" +
-      '    $ npx @getalby/cli receive --amount-sats 2100 --description "Coffee"',
+      "    $ npx @getalby/cli pay alice@getalby.com --amount 100 --currency BTC --unit sats --network lightning\n" +
+      "    $ npx @getalby/cli pay alice@getalby.com --amount 5 --currency USD --network lightning\n" +
+      '    $ npx @getalby/cli receive --amount 2100 --currency BTC --unit sats --network lightning --description "Coffee"',
   )
   .version("0.8.0")
   .configureHelp({ showGlobalOptions: true })
@@ -106,7 +107,7 @@ registerRequestInvoiceFromLightningAddressCommand(program);
 program.commandsGroup("HTTP 402 Payments (requires wallet connection):");
 registerFetch402Command(program);
 
-// Register cross-currency payments (Lightning → EVM via atomic swap)
+// Register cross-currency payments (lightning → EVM via atomic swap)
 program.commandsGroup("Cross-Currency Payments (requires wallet connection):");
 registerPayCryptoCommand(program);
 

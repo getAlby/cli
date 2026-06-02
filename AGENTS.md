@@ -9,3 +9,7 @@ Use the package.json scripts, never invoke `tsc` / `vitest` / `node build/index.
 - `yarn test:watch` — `vitest` in watch mode
 - `yarn start` — run the built CLI
 - `yarn dev` — build + run
+
+## Writing Style
+
+Use "lightning" and "bitcoin" (lowercase) unless at the start of a sentence or in a heading. Use "..." instead of "…" and use "-" instead of "—".

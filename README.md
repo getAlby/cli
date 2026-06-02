@@ -2,7 +2,11 @@
 
 CLI for Nostr Wallet Connect (NIP-47) with lightning tools.
 
-Built for agents - use with the [Alby Bitcoin Payments CLI Skill](https://github.com/getAlby/alby-cli-skill)
+Built for agents - best used with the [Alby Bitcoin Payments CLI Skill](https://github.com/getAlby/alby-cli-skill)
+
+## What this CLI can do
+
+Bitcoin lightning wallet operations using Nostr Wallet Connect (NIP-47). Use when the user needs to send/receive bitcoin payments, pay to crypto/stablecoin addresses, check wallet balance, create invoices, convert between fiat and sats, work with lightning addresses, when an HTTP request returns a 402 Payment Required status code and the user wants to pay for and retry the request, or discover paid API services.
 
 ## Usage
 
@@ -27,6 +31,8 @@ npx @getalby/cli auth --complete
 npx @getalby/cli connect "nostr+walletconnect://..."
 ```
 
+Already have a connection secret? Pass it per-command with `-c <secret-or-file>`, or set the `NWC_URL` environment variable.
+
 ### Multiple wallets
 
 Use `--wallet-name` when setting up to save named connections:
@@ -49,32 +55,6 @@ List the wallets you've configured (names and connection status only, never the 
 npx @getalby/cli list-wallets
 ```
 
-### Connection secret resolution (in order of priority)
-
-1. `--connection-secret` flag (value or path to file)
-2. `--wallet-name` flag (`~/.alby-cli/connection-secret-<name>.key`)
-3. `NWC_URL` environment variable
-4. `~/.alby-cli/connection-secret.key` (default file location)
-
-```bash
-# Use the default saved wallet connection (preferred)
-npx @getalby/cli <command> [options]
-
-# Use a named wallet
-npx @getalby/cli --wallet-name alice <command> [options]
-
-# Or pass a connection secret directly
-npx @getalby/cli -c /path/to/secret.txt <command> [options]
-```
-
-The `-c` option auto-detects whether you're passing a connection string or a file path. You can get a connection string from your NWC-compatible wallet (e.g., [Alby](https://getalby.com)).
-
-You can also set the `NWC_URL` environment variable instead of using the `-c` option:
-
-```txt
-NWC_URL="nostr+walletconnect://..."
-```
-
 ## Testing Wallet
 
 For testing the CLI without using real funds, you can create a test wallet using the [NWC Faucet](https://faucet.nwc.dev):
@@ -93,107 +73,9 @@ curl -X POST "https://faucet.nwc.dev/wallets/<username>/topup?amount=5000"
 
 ## Commands
 
-### Wallet Commands
+Run `npx @getalby/cli help` for the full list of commands and their arguments, or `npx @getalby/cli help <command>` for one command.
 
-These commands require a wallet connection - either default connection, or specify a custom connection with `-w`, '-c', or `NWC_URL` environment variable:
-
-```bash
-# Get wallet balance
-npx @getalby/cli get-balance
-
-# Get wallet info
-npx @getalby/cli get-info
-
-# Get wallet service capabilities
-npx @getalby/cli get-wallet-service-info
-
-# Create an invoice
-npx @getalby/cli make-invoice --amount-sats 1000 --description "Payment"
-
-# Get paid — returns the wallet's lightning address, or a BOLT-11 invoice if --amount-sats is given.
-#   - With no args: returns the wallet's lightning address (errors if the wallet has none)
-npx @getalby/cli receive
-#   - With --amount-sats: returns a BOLT-11 invoice for that amount; --description is optional
-npx @getalby/cli receive --amount-sats 100 --description "coffee"
-
-# Pay any supported destination — auto-detects type from the destination string.
-# Required args depend on the destination type:
-#   - BOLT-11 invoice (lnbc...): no extra args (use --amount-sats only for zero-amount invoices)
-npx @getalby/cli pay "lnbc..."
-#   - Lightning address (user@domain): requires --amount-sats; optional --comment
-npx @getalby/cli pay alice@getalby.com --amount-sats 100 --comment "hi"
-#   - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount-sats
-npx @getalby/cli pay 02abc... --amount-sats 100
-#   - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network
-npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum
-
-# The dedicated `pay-invoice`, `pay-keysend`, and `pay-crypto` commands are
-# still available if you want to constrain the destination type explicitly.
-
-# Look up an invoice by payment hash
-npx @getalby/cli lookup-invoice --payment-hash "abc123..."
-
-# List transactions
-npx @getalby/cli list-transactions --limit 10
-
-# Get wallet budget
-npx @getalby/cli get-budget
-
-# Sign a message
-npx @getalby/cli sign-message --message "Hello, World!"
-
-# Fetch a payment-protected resource (auto-detects L402, X402, MPP)
-npx @getalby/cli fetch "https://example.com/api"
-
-# Fetch with custom method, headers, and body
-npx @getalby/cli fetch "https://example.com/api" --method POST --body '{"query":"hello"}' --headers '{"Accept":"application/json"}'
-
-# Fetch with a custom max amount (default: 5000 sats, 0 = no limit)
-npx @getalby/cli fetch "https://example.com/api" --max-amount-sats 1000
-
-# Wait for a payment notification
-npx @getalby/cli wait-for-payment --payment-hash "abc123..."
-```
-
-### HOLD Invoices
-
-HOLD invoices allow you to accept payments conditionally - the payment is held until you settle or cancel it.
-
-```bash
-# Create a HOLD invoice (you provide the payment hash)
-npx @getalby/cli make-hold-invoice --amount-sats 1000 --payment-hash "abc123..."
-
-# Settle a HOLD invoice (claim the payment)
-npx @getalby/cli settle-hold-invoice --preimage "def456..."
-
-# Cancel a HOLD invoice (reject the payment)
-npx @getalby/cli cancel-hold-invoice --payment-hash "abc123..."
-```
-
-### Lightning Tools
-
-These commands don't require a wallet connection:
-
-```bash
-# Convert USD to sats
-npx @getalby/cli fiat-to-sats --currency USD --amount 10
-
-# Convert sats to USD
-npx @getalby/cli sats-to-fiat --amount-sats 1000 --currency USD
-
-# Parse a BOLT-11 invoice
-npx @getalby/cli parse-invoice --invoice "lnbc..."
-
-# Verify a preimage against an invoice
-npx @getalby/cli verify-preimage --invoice "lnbc..." --preimage "abc123..."
-
-# Request invoice from lightning address
-npx @getalby/cli request-invoice-from-lightning-address --address "hello@getalby.com" --amount-sats 1000
-```
-
-## Command Reference
-
-Run `npx @getalby/cli help` for a full list of commands and possible arguments.
+Amounts are always given as `--amount` with `--currency` and `--network`; `--currency BTC` additionally requires `--unit sats|BTC`.
 
 ## Output
 
