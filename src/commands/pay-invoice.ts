@@ -7,13 +7,17 @@ export function registerPayInvoiceCommand(program: Command) {
     .command("pay-invoice")
     .description("Pay a lightning invoice")
     .argument("<bolt11>", "Invoice to pay")
-    .option("-a, --amount <sats>", "Amount (for zero-amount invoices)", parseInt)
+    .option(
+      "--amount-sats <sats>",
+      "Amount in sats (for zero-amount invoices)",
+      parseInt,
+    )
     .action(async (invoice, options) => {
       await handleError(async () => {
         const client = await getClient(program);
         const result = await payInvoice(client, {
           invoice,
-          amount_in_sats: options.amount,
+          amount_in_sats: options.amountSats,
         });
         output(result);
       });

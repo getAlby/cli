@@ -11,22 +11,24 @@ interface LightningAddressResult {
 }
 
 describe("receive command — validation", () => {
-  test("--description without --amount is rejected", () => {
+  test("--description without --amount-sats is rejected", () => {
     const result = runCli<ErrorOutput>(`receive --description "hi"`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--description requires --amount");
+    expect(result.output.error).toContain(
+      "--description requires --amount-sats",
+    );
   });
 
-  test("--amount 0 is rejected", () => {
-    const result = runCli<ErrorOutput>(`receive --amount 0`);
+  test("--amount-sats 0 is rejected", () => {
+    const result = runCli<ErrorOutput>(`receive --amount-sats 0`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid --amount");
+    expect(result.output.error).toContain("Invalid --amount-sats");
   });
 
-  test("--amount abc (NaN) is rejected", () => {
-    const result = runCli<ErrorOutput>(`receive --amount abc`);
+  test("--amount-sats abc (NaN) is rejected", () => {
+    const result = runCli<ErrorOutput>(`receive --amount-sats abc`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid --amount");
+    expect(result.output.error).toContain("Invalid --amount-sats");
   });
 });
 
@@ -45,18 +47,18 @@ describe("receive command — live integration", () => {
     expect(result.output.lightning_address).toBe(wallet.lightningAddress);
   });
 
-  test("receive --amount returns a BOLT-11 invoice", () => {
+  test("receive --amount-sats returns a BOLT-11 invoice", () => {
     const result = runCli<MakeInvoiceResult>(
-      `-c "${wallet.nwcUrl}" receive --amount 100`,
+      `-c "${wallet.nwcUrl}" receive --amount-sats 100`,
     );
     expect(result.success).toBe(true);
     expect(result.output.invoice).toMatch(/^lnbc/i);
     expect(result.output.amount_in_sats).toBe(100);
   });
 
-  test("receive --amount --description produces an invoice", () => {
+  test("receive --amount-sats --description produces an invoice", () => {
     const result = runCli<MakeInvoiceResult>(
-      `-c "${wallet.nwcUrl}" receive --amount 100 --description "test"`,
+      `-c "${wallet.nwcUrl}" receive --amount-sats 100 --description "test"`,
     );
     expect(result.success).toBe(true);
     expect(result.output.invoice).toMatch(/^lnbc/i);

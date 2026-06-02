@@ -7,7 +7,7 @@ export function registerPayKeysendCommand(program: Command) {
     .command("pay-keysend")
     .description("Send a keysend payment to a node")
     .requiredOption("-p, --pubkey <hex>", "Destination node public key")
-    .requiredOption("-a, --amount <sats>", "Amount in sats", parseInt)
+    .requiredOption("--amount-sats <sats>", "Amount in sats", parseInt)
     .option("--preimage <hex>", "Preimage (optional, will be generated if not provided)")
     .option("--tlv-records <json>", "TLV records as JSON array [{type, value}]")
     .action(async (options) => {
@@ -19,7 +19,7 @@ export function registerPayKeysendCommand(program: Command) {
         }
         const result = await payKeysend(client, {
           pubkey: options.pubkey,
-          amount_in_sats: options.amount,
+          amount_in_sats: options.amountSats,
           preimage: options.preimage,
           tlv_records: tlvRecords,
         });

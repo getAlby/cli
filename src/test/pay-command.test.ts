@@ -20,17 +20,17 @@ describe("pay command — destination detection", () => {
     expect(result.output.error).toContain("EVM address");
   });
 
-  test("lightning address without --amount is rejected before wallet load", () => {
+  test("lightning address without --amount-sats is rejected before wallet load", () => {
     const result = runCli<ErrorOutput>(`pay alice@getalby.com`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount");
+    expect(result.output.error).toContain("--amount-sats");
   });
 
-  test("keysend pubkey without --amount is rejected before wallet load", () => {
+  test("keysend pubkey without --amount-sats is rejected before wallet load", () => {
     const pubkey = "02" + "a".repeat(64);
     const result = runCli<ErrorOutput>(`pay ${pubkey}`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount");
+    expect(result.output.error).toContain("--amount-sats");
   });
 
   test("EVM address without --amount is rejected before wallet load", () => {
@@ -38,6 +38,36 @@ describe("pay command — destination detection", () => {
       `pay 0x000000000000000000000000000000000000dead`,
     );
     expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--amount");
+  });
+
+  // Bitcoin destinations must use --amount-sats, not --amount.
+  test("lightning address with --amount (crypto flag) is rejected and points to --amount-sats", () => {
+    const result = runCli<ErrorOutput>(`pay alice@getalby.com --amount 100`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--amount-sats");
+  });
+
+  test("keysend pubkey with --amount (crypto flag) is rejected and points to --amount-sats", () => {
+    const pubkey = "02" + "a".repeat(64);
+    const result = runCli<ErrorOutput>(`pay ${pubkey} --amount 100`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--amount-sats");
+  });
+
+  test("BOLT-11 invoice with --amount (crypto flag) is rejected and points to --amount-sats", () => {
+    const result = runCli<ErrorOutput>(`pay lnbc1junk --amount 100`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--amount-sats");
+  });
+
+  // Crypto destinations must use --amount, not --amount-sats.
+  test("EVM address with --amount-sats (bitcoin flag) is rejected and points to --amount", () => {
+    const result = runCli<ErrorOutput>(
+      `pay 0x000000000000000000000000000000000000dead --amount-sats 10 --currency USDC --network arbitrum`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--amount-sats is not valid");
     expect(result.output.error).toContain("--amount");
   });
 
@@ -74,7 +104,7 @@ describe("pay command — destination detection", () => {
   test("--comment on a keysend pubkey is rejected as not applicable", () => {
     const pubkey = "02" + "a".repeat(64);
     const result = runCli<ErrorOutput>(
-      `pay ${pubkey} --amount 100 --comment hi`,
+      `pay ${pubkey} --amount-sats 100 --comment hi`,
     );
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("not applicable to keysend payment");
@@ -92,7 +122,7 @@ describe("pay command — live integration", () => {
 
   test("pay <bolt11> pays an invoice end-to-end", () => {
     const invoiceResult = runCli<MakeInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-invoice -a 100`,
+      `-c "${receiver.nwcUrl}" make-invoice --amount-sats 100`,
     );
     expect(invoiceResult.success).toBe(true);
 
@@ -103,22 +133,22 @@ describe("pay command — live integration", () => {
     expect(paymentResult.output.preimage).toBeDefined();
   });
 
-  test("pay <lightning-address> --amount fetches an invoice and pays it", () => {
+  test("pay <lightning-address> --amount-sats fetches an invoice and pays it", () => {
     const paymentResult = runCli<PayInvoiceResult>(
-      `-c "${sender.nwcUrl}" pay ${receiver.lightningAddress} --amount 100`,
+      `-c "${sender.nwcUrl}" pay ${receiver.lightningAddress} --amount-sats 100`,
     );
     expect(paymentResult.success).toBe(true);
     expect(paymentResult.output.preimage).toBeDefined();
   });
 
-  test("pay <pubkey> --amount sends a keysend payment", () => {
+  test("pay <pubkey> --amount-sats sends a keysend payment", () => {
     const infoResult = runCli<GetInfoResult>(
       `-c "${receiver.nwcUrl}" get-info`,
     );
     expect(infoResult.success).toBe(true);
 
     const paymentResult = runCli<PayKeysendResult>(
-      `-c "${sender.nwcUrl}" pay ${infoResult.output.pubkey} --amount 100`,
+      `-c "${sender.nwcUrl}" pay ${infoResult.output.pubkey} --amount-sats 100`,
     );
     expect(paymentResult.success).toBe(true);
     expect(paymentResult.output.preimage).toBeDefined();

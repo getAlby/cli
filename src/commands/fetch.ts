@@ -13,7 +13,7 @@ export function registerFetch402Command(program: Command) {
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
-      "--max-amount <sats>",
+      "--max-amount-sats <sats>",
       "Maximum amount in sats to pay per request. Aborts if the endpoint requests more. (default: 5000, 0 = no limit)",
       parseInt,
     )
@@ -25,7 +25,7 @@ export function registerFetch402Command(program: Command) {
           method: options.method,
           body: options.body,
           headers: options.headers ? JSON.parse(options.headers) : undefined,
-          maxAmountSats: options.maxAmount,
+          maxAmountSats: options.maxAmountSats,
         });
         output(result);
       });

@@ -6,14 +6,14 @@ export function registerMakeInvoiceCommand(program: Command) {
   program
     .command("make-invoice")
     .description("Create a lightning invoice")
-    .requiredOption("-a, --amount <sats>", "Amount in sats", parseInt)
+    .requiredOption("--amount-sats <sats>", "Amount in sats", parseInt)
     .option("-d, --description <text>", "Invoice description")
     .option("-e, --expiry <seconds>", "Expiry time in seconds", parseInt)
     .action(async (options) => {
       await handleError(async () => {
         const client = await getClient(program);
         const result = await makeInvoice(client, {
-          amount_in_sats: options.amount,
+          amount_in_sats: options.amountSats,
           description: options.description,
           expiry: options.expiry,
         });

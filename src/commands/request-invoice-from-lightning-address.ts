@@ -7,13 +7,13 @@ export function registerRequestInvoiceFromLightningAddressCommand(program: Comma
     .command("request-invoice-from-lightning-address")
     .description("Request an invoice from a lightning address")
     .requiredOption("-a, --address <ln-address>", "Lightning address")
-    .requiredOption("-s, --amount <sats>", "Amount in sats", parseInt)
+    .requiredOption("--amount-sats <sats>", "Amount in sats", parseInt)
     .option("--comment <text>", "Optional comment")
     .action(async (options) => {
       await handleError(async () => {
         const result = await requestInvoiceFromLightningAddress({
           lightning_address: options.address,
-          amount_in_sats: options.amount,
+          amount_in_sats: options.amountSats,
           comment: options.comment,
         });
         output(result);

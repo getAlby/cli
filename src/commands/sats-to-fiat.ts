@@ -6,12 +6,12 @@ export function registerSatsToFiatCommand(program: Command) {
   program
     .command("sats-to-fiat")
     .description("Convert sats to fiat")
-    .requiredOption("-a, --amount <sats>", "Amount in sats", parseInt)
+    .requiredOption("--amount-sats <sats>", "Amount in sats", parseInt)
     .requiredOption("--currency <code>", "Currency code (e.g., USD, EUR)")
     .action(async (options) => {
       await handleError(async () => {
         const result = await satsToFiat({
-          amount_in_sats: options.amount,
+          amount_in_sats: options.amountSats,
           currency: options.currency,
         });
         output(result);

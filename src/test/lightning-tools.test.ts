@@ -14,7 +14,9 @@ const exampleLightningAddress = "nwc1779952113427@getalby.com";
 
 describe("Lightning Tools (no wallet required)", () => {
   test("fiat-to-sats converts USD to sats", () => {
-    const result = runCli<FiatToSatsResult>("fiat-to-sats -a 1 --currency USD");
+    const result = runCli<FiatToSatsResult>(
+      "fiat-to-sats --amount 1 --currency USD",
+    );
     expect(result.success).toBe(true);
     expect(result.output.amount_in_sats).toBeTypeOf("number");
     expect(result.output.amount_in_sats).toBeGreaterThan(0);
@@ -22,7 +24,7 @@ describe("Lightning Tools (no wallet required)", () => {
 
   test("sats-to-fiat converts sats to USD", () => {
     const result = runCli<SatsToFiatResult>(
-      "sats-to-fiat -a 1000 --currency USD",
+      "sats-to-fiat --amount-sats 1000 --currency USD",
     );
     expect(result.success).toBe(true);
     expect(result.output.amount).toBeTypeOf("number");
@@ -51,7 +53,7 @@ describe("Lightning Tools (no wallet required)", () => {
 
   test("request-invoice-from-lightning-address requests invoice from lightning address", async () => {
     const result = runCli<RequestInvoiceFromLightningAddressResult>(
-      `request-invoice-from-lightning-address -a "${exampleLightningAddress}" -s 100`,
+      `request-invoice-from-lightning-address -a "${exampleLightningAddress}" --amount-sats 100`,
     );
     expect(result.success).toBe(true);
     expect(result.output.paymentRequest.toLowerCase()).toMatch(/^lnbc/);
