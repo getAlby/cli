@@ -6,6 +6,7 @@ import {
   payCrypto,
   findSupportedPair,
 } from "../lendaswap/swap.js";
+import { parseAmountNumber, classifyRail } from "../amount.js";
 
 export function registerPayCryptoCommand(program: Command) {
   program
@@ -18,12 +19,12 @@ export function registerPayCryptoCommand(program: Command) {
     .requiredOption(
       "--amount <number>",
       "Amount to send in target-currency units (e.g. 10 = 10 USDC)",
-      Number,
+      parseAmountNumber,
     )
     .requiredOption("--currency <name>", "Target currency (e.g. USDC)")
     .requiredOption(
       "--network <name>",
-      "Target network (chain name or id, e.g. arbitrum / 42161)",
+      "Target chain network (chain name or id, e.g. arbitrum / 42161)",
     )
     .addHelpText(
       "after",
@@ -32,8 +33,20 @@ export function registerPayCryptoCommand(program: Command) {
     )
     .action(async (address: string, options) => {
       await handleError(async () => {
-        if (!Number.isFinite(options.amount) || options.amount <= 0) {
-          throw new Error(`Invalid --amount: ${options.amount}`);
+        // Shared rail classifier: rejects --unit, rejects --network lightning,
+        // rejects BTC/fiat on a chain network — leaving only a crypto token on
+        // a chain network, which findSupportedPair then validates.
+        const rail = classifyRail({
+          currency: options.currency,
+          unit: options.unit,
+          network: options.network,
+        });
+        if (rail.kind !== "crypto") {
+          throw new Error(
+            "pay-crypto only sends crypto tokens over a chain network " +
+              "(e.g. --currency USDC --network arbitrum). For BTC/fiat over " +
+              "lightning, use the pay command.",
+          );
         }
         if (!isPlausibleEvmAddress(address)) {
           throw new Error(
@@ -43,7 +56,7 @@ export function registerPayCryptoCommand(program: Command) {
 
         // Validate the pair against the live Lendaswap catalog before
         // asking the user for their wallet — fast feedback on typos.
-        const pair = await findSupportedPair(options.currency, options.network);
+        const pair = await findSupportedPair(rail.currency, rail.network);
 
         const nwc = await getClient(program);
 

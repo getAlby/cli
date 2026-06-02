@@ -23,7 +23,7 @@ describe("NWC HOLD Invoice Commands", () => {
   test("make-hold-invoice creates hold invoice", () => {
     const { paymentHash } = generateHoldInvoiceParams();
     const result = runCli<MakeHoldInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-hold-invoice --amount-sats 100 --payment-hash "${paymentHash}"`
+      `-c "${receiver.nwcUrl}" make-hold-invoice --amount 100 --currency BTC --unit sats --network lightning --payment-hash "${paymentHash}"`
     );
     expect(result.success).toBe(true);
     expect(result.output.invoice).toBeDefined();
@@ -35,7 +35,7 @@ describe("NWC HOLD Invoice Commands", () => {
 
     // Create a hold invoice
     const holdResult = runCli<MakeHoldInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-hold-invoice --amount-sats 100 --payment-hash "${paymentHash}"`
+      `-c "${receiver.nwcUrl}" make-hold-invoice --amount 100 --currency BTC --unit sats --network lightning --payment-hash "${paymentHash}"`
     );
     expect(holdResult.success).toBe(true);
 
@@ -91,7 +91,7 @@ describe("NWC HOLD Invoice Commands", () => {
 
     // Create a hold invoice
     const holdResult = runCli<MakeHoldInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-hold-invoice --amount-sats 100 --payment-hash "${paymentHash}"`
+      `-c "${receiver.nwcUrl}" make-hold-invoice --amount 100 --currency BTC --unit sats --network lightning --payment-hash "${paymentHash}"`
     );
     expect(holdResult.success).toBe(true);
 
