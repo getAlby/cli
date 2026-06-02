@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { NWAClient, NWCClient } from "@getalby/sdk";
 import { getInfo } from "./tools/nwc/get_info.js";
 import {
@@ -17,6 +17,36 @@ export const DEFAULT_RELAY_URLS = [
   "wss://relay.getalby.com",
   "wss://relay2.getalby.com",
 ];
+
+/**
+ * Build a commander option parser for a sat-denominated flag (`--amount-sats`,
+ * `--max-amount-sats`). Sats are indivisible, so only a base-10 whole number is
+ * accepted. Unlike `parseInt`, this rejects partial/odd input — `"1abc"`,
+ * `"1e3"`, `"1.5"`, `"0x10"`, `"abc"` — instead of silently coercing it to a
+ * different value. That truncation previously let the same flag resolve to
+ * different amounts across commands (`parseInt("1e3") === 1`) and could even
+ * disable fetch's spend cap (`parseInt("abc")` → `NaN` → treated as "no limit").
+ *
+ * @param allowZero permit `0` — used by `--max-amount-sats`, where `0` means
+ *   "no limit". Amount flags leave this `false`, so `0` sats is rejected.
+ */
+export function parseSatsOption(allowZero = false) {
+  return (value: string): number => {
+    if (!/^\d+$/.test(value.trim())) {
+      throw new InvalidArgumentError(
+        `Sats must be a whole number (got "${value}")`,
+      );
+    }
+    const sats = Number(value);
+    if (!Number.isSafeInteger(sats)) {
+      throw new InvalidArgumentError(`Sats value is too large (got "${value}")`);
+    }
+    if (sats === 0 && !allowZero) {
+      throw new InvalidArgumentError("Sats must be greater than 0");
+    }
+    return sats;
+  };
+}
 
 export function getAlbyCliDir() {
   return join(homedir(), ".alby-cli");

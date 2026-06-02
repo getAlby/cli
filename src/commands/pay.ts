@@ -8,7 +8,7 @@ import {
   payCrypto,
   findSupportedPair,
 } from "../lendaswap/swap.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 type DestinationType = "crypto" | "invoice" | "lightning-address" | "keysend";
 
@@ -91,7 +91,7 @@ export function registerPayCommand(program: Command) {
     .option(
       "--amount-sats <sats>",
       "Amount in sats — for lightning destinations (invoice, lightning address, keysend)",
-      Number,
+      parseSatsOption(),
     )
     .option(
       "--amount <number>",
@@ -151,14 +151,8 @@ export function registerPayCommand(program: Command) {
 
         switch (type) {
           case "invoice": {
-            if (
-              options.amountSats !== undefined &&
-              !Number.isInteger(options.amountSats)
-            ) {
-              throw new Error(
-                `Invalid --amount-sats: must be an integer number of sats`,
-              );
-            }
+            // --amount-sats is optional here (only for zero-amount invoices)
+            // and, when present, already validated by parseSatsOption.
             const client = await getClient(program);
             const result = await payInvoice(client, {
               invoice: destination,
@@ -172,14 +166,6 @@ export function registerPayCommand(program: Command) {
             if (options.amountSats === undefined) {
               throw new Error(
                 "Lightning address payments require --amount-sats <sats>",
-              );
-            }
-            if (
-              !Number.isInteger(options.amountSats) ||
-              options.amountSats <= 0
-            ) {
-              throw new Error(
-                `Invalid --amount-sats: must be a positive integer number of sats`,
               );
             }
             const invoice = await requestInvoiceFromLightningAddress({
@@ -205,14 +191,6 @@ export function registerPayCommand(program: Command) {
           case "keysend": {
             if (options.amountSats === undefined) {
               throw new Error("Keysend payments require --amount-sats <sats>");
-            }
-            if (
-              !Number.isInteger(options.amountSats) ||
-              options.amountSats <= 0
-            ) {
-              throw new Error(
-                `Invalid --amount-sats: must be a positive integer number of sats`,
-              );
             }
             let tlvRecords: TlvRecord[] | undefined;
             if (options.tlvRecords) {

@@ -187,6 +187,16 @@ describe("pay-crypto validation", () => {
       expect(result.success).toBe(false);
       expect(result.output.error).toContain("Invalid --amount");
     });
+
+    // Unit-suffixed input must not be truncated to its leading digits
+    // (Number("123usd") is NaN, unlike parseFloat which would yield 123).
+    test("--amount 123usd is rejected", async () => {
+      const result = await runCliAsync<ErrorOutput>(
+        "pay-crypto 0x000000000000000000000000000000000000dead --amount 123usd --currency USDC --network arbitrum",
+      );
+      expect(result.success).toBe(false);
+      expect(result.output.error).toContain("Invalid --amount");
+    });
   });
 
   describe("missing required options", () => {

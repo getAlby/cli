@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { payInvoice } from "../tools/nwc/pay_invoice.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 export function registerPayInvoiceCommand(program: Command) {
   program
@@ -10,7 +10,7 @@ export function registerPayInvoiceCommand(program: Command) {
     .option(
       "--amount-sats <sats>",
       "Amount in sats (for zero-amount invoices)",
-      parseInt,
+      parseSatsOption(),
     )
     .action(async (invoice, options) => {
       await handleError(async () => {

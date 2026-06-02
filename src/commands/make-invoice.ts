@@ -1,12 +1,12 @@
 import { Command } from "commander";
 import { makeInvoice } from "../tools/nwc/make_invoice.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 export function registerMakeInvoiceCommand(program: Command) {
   program
     .command("make-invoice")
     .description("Create a lightning invoice")
-    .requiredOption("--amount-sats <sats>", "Amount in sats", parseInt)
+    .requiredOption("--amount-sats <sats>", "Amount in sats", parseSatsOption())
     .option("-d, --description <text>", "Invoice description")
     .option("-e, --expiry <seconds>", "Expiry time in seconds", parseInt)
     .action(async (options) => {

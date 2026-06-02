@@ -71,6 +71,26 @@ describe("pay command — destination detection", () => {
     expect(result.output.error).toContain("--amount");
   });
 
+  // Unit-suffixed / non-numeric amounts must be rejected, not silently
+  // coerced (e.g. "123usd" → 123). The bitcoin path (--amount-sats) is parsed
+  // by the strict shared sats parser; the crypto path (--amount) by Number +
+  // a finiteness check.
+  test("lightning address with a non-numeric --amount-sats is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay alice@getalby.com --amount-sats 123usd`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("Sats must be a whole number");
+  });
+
+  test("EVM address with a non-numeric --amount is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay 0x000000000000000000000000000000000000dead --amount 123usd --currency USDC --network arbitrum`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("Invalid --amount");
+  });
+
   test("EVM address without --currency is rejected", () => {
     const result = runCli<ErrorOutput>(
       `pay 0x000000000000000000000000000000000000dead --amount 10 --network arbitrum`,

@@ -22,13 +22,13 @@ describe("receive command — validation", () => {
   test("--amount-sats 0 is rejected", () => {
     const result = runCli<ErrorOutput>(`receive --amount-sats 0`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid --amount-sats");
+    expect(result.output.error).toContain("greater than 0");
   });
 
   test("--amount-sats abc (NaN) is rejected", () => {
     const result = runCli<ErrorOutput>(`receive --amount-sats abc`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid --amount-sats");
+    expect(result.output.error).toContain("whole number");
   });
 });
 

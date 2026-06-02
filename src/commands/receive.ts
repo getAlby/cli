@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { makeInvoice } from "../tools/nwc/make_invoice.js";
-import { getClient, handleError, output } from "../utils.js";
+import { getClient, handleError, output, parseSatsOption } from "../utils.js";
 
 export function registerReceiveCommand(program: Command) {
   program
@@ -10,7 +10,7 @@ export function registerReceiveCommand(program: Command) {
         "  - receive                    → returns the wallet's lightning address (if available)\n" +
         "  - receive --amount-sats <sats>    → returns a BOLT-11 invoice for the given amount",
     )
-    .option("--amount-sats <sats>", "Invoice amount in sats", parseInt)
+    .option("--amount-sats <sats>", "Invoice amount in sats", parseSatsOption())
     .option(
       "-d, --description <text>",
       "Invoice description (requires --amount-sats)",
@@ -39,11 +39,8 @@ export function registerReceiveCommand(program: Command) {
           return;
         }
 
-        if (!Number.isInteger(options.amountSats) || options.amountSats <= 0) {
-          throw new Error(
-            "Invalid --amount-sats: must be a positive integer number of sats",
-          );
-        }
+        // --amount-sats is already validated as a positive integer by its
+        // parser (parseSatsOption) at parse time.
         const client = await getClient(program);
         const result = await makeInvoice(client, {
           amount_in_sats: options.amountSats,
