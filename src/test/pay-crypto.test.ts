@@ -169,7 +169,7 @@ describe("pay-crypto validation", () => {
         "pay-crypto 0x000000000000000000000000000000000000dead --amount 0 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
-      expect(result.output.error).toContain("Invalid --amount");
+      expect(result.output.error).toContain("Amount must be a positive number");
     });
 
     test("--amount -1 is rejected", async () => {
@@ -177,7 +177,7 @@ describe("pay-crypto validation", () => {
         "pay-crypto 0x000000000000000000000000000000000000dead --amount -1 --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
-      expect(result.output.error).toContain("Invalid --amount");
+      expect(result.output.error).toContain("Amount must be a positive number");
     });
 
     test("--amount abc (NaN) is rejected", async () => {
@@ -185,7 +185,7 @@ describe("pay-crypto validation", () => {
         "pay-crypto 0x000000000000000000000000000000000000dead --amount abc --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
-      expect(result.output.error).toContain("Invalid --amount");
+      expect(result.output.error).toContain("Amount must be a positive number");
     });
 
     // Unit-suffixed input must not be truncated to its leading digits
@@ -195,7 +195,7 @@ describe("pay-crypto validation", () => {
         "pay-crypto 0x000000000000000000000000000000000000dead --amount 123usd --currency USDC --network arbitrum",
       );
       expect(result.success).toBe(false);
-      expect(result.output.error).toContain("Invalid --amount");
+      expect(result.output.error).toContain("Amount must be a positive number");
     });
   });
 

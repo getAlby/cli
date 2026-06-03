@@ -58,7 +58,7 @@ let supportedPairsPromise: Promise<SupportedPair[]> | null = null;
 
 /**
  * Fetch all (currency, network) pairs that can be the target of a
- * Lightning → EVM swap. The list comes straight from the Lendaswap API:
+ * lightning → EVM swap. The list comes straight from the Lendaswap API:
  * `getTokens()` for the token universe, intersected with `getSwapPairs()`
  * filtered to source = Lightning.
  */
@@ -119,7 +119,7 @@ export async function findSupportedPair(
 }
 
 /**
- * EVM address shape check: every chain reachable from Lightning is EVM, so
+ * EVM address shape check: every chain reachable from lightning is EVM, so
  * the universal `0x` + 40-hex format applies. Lendaswap does the
  * authoritative validation when it builds the swap; this is just a sanity
  * pre-check so an obvious typo fails fast before we lock funds.
@@ -154,7 +154,7 @@ async function createPaymentSwap(params: {
     referralCode: "lnds_2c07e38f10a28d47",
   });
   // Source is BTC_LIGHTNING and target is an EVM token, so the SDK routes
-  // through its Lightning→EVM path.
+  // through its lightning→EVM path.
   return result.response as LightningToEvmSwapResponse;
 }
 
@@ -179,7 +179,7 @@ export interface PayCryptoParams {
   /** Recipient address on the target network. */
   targetAddress: string;
   /**
-   * Pay the swap's bolt11 invoice. The caller owns the Lightning wallet; this
+   * Pay the swap's bolt11 invoice. The caller owns the lightning wallet; this
    * keeps lendaswap independent of any specific wallet/NWC implementation.
    */
   payInvoice: (bolt11Invoice: string) => Promise<void>;
@@ -190,7 +190,7 @@ export interface PayCryptoResult {
 }
 
 /**
- * Run a Lightning → on-chain crypto payment swap and block until it reaches a
+ * Run a lightning → on-chain crypto payment swap and block until it reaches a
  * terminal status. Throws on any failure status. All swap-provider specifics
  * (Lendaswap SDK calls, status handling, claim-on-serverfunded) live here so
  * that swapping out the provider is a self-contained change.
@@ -244,7 +244,7 @@ export async function payCrypto(
           ),
         );
 
-      // Pay the Lightning invoice. Failure here propagates as the
+      // Pay the lightning invoice. Failure here propagates as the
       // overall swap failure; success doesn't resolve us — only a
       // terminal swap status does.
       params

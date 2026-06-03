@@ -38,7 +38,7 @@
   "dependencies": {
     "@getalby/lightning-tools": "^8.1.1",
     "@getalby/sdk": "^8.0.1",
-    "@lendasat/lendaswap-sdk-pure": "^0.2.36",
+    "@lendasat/lendaswap-sdk-pure": "^0.2.38",
     "@noble/hashes": "^2.0.1",
     "commander": "^14.0.3",
     "nostr-tools": "^2.23.3"

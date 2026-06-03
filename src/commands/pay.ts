@@ -8,7 +8,12 @@ import {
   payCrypto,
   findSupportedPair,
 } from "../lendaswap/swap.js";
-import { getClient, handleError, output, parseSatsOption } from "../utils.js";
+import { getClient, handleError, output } from "../utils.js";
+import {
+  parseAmountNumber,
+  classifyRail,
+  resolveLightningSats,
+} from "../amount.js";
 
 type DestinationType = "crypto" | "invoice" | "lightning-address" | "keysend";
 
@@ -28,21 +33,24 @@ function detectDestinationType(destination: string): DestinationType | null {
   return null;
 }
 
+// Which flags each destination accepts. The amount axes (amount/currency/
+// unit/network) are shared by every lightning destination; the crypto rail
+// has no sub-unit, so `unit` is excluded there.
 const ALLOWED_OPTS: Record<DestinationType, ReadonlyArray<string>> = {
-  invoice: ["amountSats"],
-  "lightning-address": ["amountSats", "comment"],
-  keysend: ["amountSats", "preimage", "tlvRecords"],
+  invoice: ["amount", "currency", "unit", "network"],
+  "lightning-address": ["amount", "currency", "unit", "network", "comment"],
+  keysend: ["amount", "currency", "unit", "network", "preimage", "tlvRecords"],
   crypto: ["amount", "currency", "network"],
 };
 
 const OPT_FLAG: Record<string, string> = {
-  amountSats: "--amount-sats",
   amount: "--amount",
+  currency: "--currency",
+  unit: "--unit",
+  network: "--network",
   comment: "--comment",
   preimage: "--preimage",
   tlvRecords: "--tlv-records",
-  currency: "--currency",
-  network: "--network",
 };
 
 function rejectUnusedOpts(
@@ -56,16 +64,11 @@ function rejectUnusedOpts(
   if (stray.length === 0) {
     return;
   }
-  // Mixing up the two amount flags is the most likely mistake — point the
-  // user straight at the correct one instead of a bare "not applicable".
-  if (stray.includes("amount") && type !== "crypto") {
+  // --unit is the most likely cross-rail mistake: it's only valid for BTC
+  // (a lightning destination), never for a crypto-token payment.
+  if (stray.includes("unit") && type === "crypto") {
     throw new Error(
-      `Option --amount is not valid for ${type} payments — use --amount-sats (sats) instead`,
-    );
-  }
-  if (stray.includes("amountSats") && type === "crypto") {
-    throw new Error(
-      "Option --amount-sats is not valid for crypto payments — use --amount with --currency instead",
+      "Option --unit is not valid for crypto payments — only BTC has sub-units (sats/BTC)",
     );
   }
   throw new Error(
@@ -79,25 +82,25 @@ export function registerPayCommand(program: Command) {
     .description(
       "Pay any supported destination — auto-detects type from the destination string.\n\n" +
         "Supported destinations:\n" +
-        "  - BOLT-11 invoice (lnbc... / lntb... / lnbcrt... / lntbs...): no extra args (use --amount-sats only for zero-amount invoices)\n" +
-        "  - Lightning address (user@domain): requires --amount-sats; optional --comment\n" +
-        "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount-sats\n" +
-        "  - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency, and --network",
+        "  - BOLT-11 invoice (lnbc... / lntb... / lnbcrt... / lntbs...): no amount flags (the invoice encodes the amount; pass --amount/--currency/--network only for a zero-amount invoice)\n" +
+        "  - Lightning address (user@domain): requires --amount, --currency, --network lightning (and --unit for BTC); optional --comment\n" +
+        "  - Node pubkey (66-char hex, compressed secp256k1): keysend, requires --amount, --currency, --network lightning (and --unit for BTC)\n" +
+        "  - EVM address (0x...): pay crypto/stablecoin, requires --amount, --currency (token), and --network <chain>",
     )
     .argument(
       "<destination>",
       "Invoice, lightning address, node pubkey, or EVM address",
     )
+    .option("--amount <number>", "Amount", parseAmountNumber)
     .option(
-      "--amount-sats <sats>",
-      "Amount in sats — for lightning destinations (invoice, lightning address, keysend)",
-      parseSatsOption(),
+      "--currency <code>",
+      "Denomination: BTC, a fiat code (USD, EUR, …), or a crypto token (USDC, …)",
     )
     .option(
-      "--amount <number>",
-      "Amount in target-currency units for crypto, e.g. 10 = 10 USDC (use with --currency)",
-      Number,
+      "--network <name>",
+      'Destination network: "lightning" to pay a lightning invoice/address (amount in --currency BTC or a fiat code), or a chain name (e.g. arbitrum) to pay a crypto/stablecoin address (funded from your lightning wallet)',
     )
+    .option("--unit <sats|BTC>", "Sub-unit (required when --currency is BTC)")
     .option("--comment <text>", "Comment for lightning address payments")
     .option(
       "--preimage <hex>",
@@ -107,20 +110,13 @@ export function registerPayCommand(program: Command) {
       "--tlv-records <json>",
       "TLV records for keysend, as JSON array [{type, value}]",
     )
-    .option(
-      "--currency <name>",
-      "Target currency for crypto payments (required for EVM destinations)",
-    )
-    .option(
-      "--network <name>",
-      "Target network for crypto payments — chain name or id (required for EVM destinations)",
-    )
     .addHelpText(
       "after",
       "\nExamples:\n" +
         "  $ npx @getalby/cli pay lnbc1...\n" +
-        "  $ npx @getalby/cli pay alice@getalby.com --amount-sats 100 --comment hi\n" +
-        "  $ npx @getalby/cli pay 02aabb... --amount-sats 100\n" +
+        "  $ npx @getalby/cli pay alice@getalby.com --amount 100 --currency BTC --unit sats --network lightning --comment hi\n" +
+        "  $ npx @getalby/cli pay alice@getalby.com --amount 5 --currency USD --network lightning\n" +
+        "  $ npx @getalby/cli pay 02aabb... --amount 100 --currency BTC --unit sats --network lightning\n" +
         "  $ npx @getalby/cli pay 0xabc... --amount 10 --currency USDC --network arbitrum\n",
     )
     .action(async (destination: string, options, cmd: Command) => {
@@ -151,26 +147,50 @@ export function registerPayCommand(program: Command) {
 
         switch (type) {
           case "invoice": {
-            // --amount-sats is optional here (only for zero-amount invoices)
-            // and, when present, already validated by parseSatsOption.
+            // A BOLT-11 invoice encodes its own amount. Amount flags are only
+            // for zero-amount invoices, and must come as a complete set.
+            let amountInSats: number | undefined;
+            let fiat: { amount: number; currency: string } | undefined;
+            if (options.amount === undefined) {
+              if (options.currency || options.unit || options.network) {
+                throw new Error(
+                  "--currency/--unit/--network only apply to a zero-amount invoice — also pass --amount, or omit them for a fixed-amount invoice",
+                );
+              }
+            } else {
+              const resolved = await resolveLightningSats({
+                amount: options.amount,
+                currency: options.currency,
+                unit: options.unit,
+                network: options.network,
+              });
+              amountInSats = resolved.sats;
+              fiat = resolved.fiat;
+            }
             const client = await getClient(program);
             const result = await payInvoice(client, {
               invoice: destination,
-              amount_in_sats: options.amountSats,
+              amount_in_sats: amountInSats,
               metadata: {},
             });
-            output(result);
+            output({ ...result, ...(fiat && { fiat }) });
             return;
           }
           case "lightning-address": {
-            if (options.amountSats === undefined) {
+            if (options.amount === undefined) {
               throw new Error(
-                "Lightning address payments require --amount-sats <sats>",
+                "Lightning address payments require --amount <n> --currency <code> --network lightning (and --unit for BTC)",
               );
             }
+            const resolved = await resolveLightningSats({
+              amount: options.amount,
+              currency: options.currency,
+              unit: options.unit,
+              network: options.network,
+            });
             const invoice = await requestInvoiceFromLightningAddress({
               lightning_address: destination,
-              amount_in_sats: options.amountSats,
+              amount_in_sats: resolved.sats,
               comment: options.comment,
             });
             const client = await getClient(program);
@@ -185,13 +205,25 @@ export function registerPayCommand(program: Command) {
               invoice: invoice.paymentRequest,
               metadata,
             });
-            output(result);
+            output({
+              ...result,
+              amount_in_sats: resolved.sats,
+              ...(resolved.fiat && { fiat: resolved.fiat }),
+            });
             return;
           }
           case "keysend": {
-            if (options.amountSats === undefined) {
-              throw new Error("Keysend payments require --amount-sats <sats>");
+            if (options.amount === undefined) {
+              throw new Error(
+                "Keysend payments require --amount <n> --currency <code> --network lightning (and --unit for BTC)",
+              );
             }
+            const resolved = await resolveLightningSats({
+              amount: options.amount,
+              currency: options.currency,
+              unit: options.unit,
+              network: options.network,
+            });
             let tlvRecords: TlvRecord[] | undefined;
             if (options.tlvRecords) {
               tlvRecords = JSON.parse(options.tlvRecords);
@@ -199,26 +231,41 @@ export function registerPayCommand(program: Command) {
             const client = await getClient(program);
             const result = await payKeysend(client, {
               pubkey: destination,
-              amount_in_sats: options.amountSats,
+              amount_in_sats: resolved.sats,
               preimage: options.preimage,
               tlv_records: tlvRecords,
             });
-            output(result);
+            output({
+              ...result,
+              amount_in_sats: resolved.sats,
+              ...(resolved.fiat && { fiat: resolved.fiat }),
+            });
             return;
           }
           case "crypto": {
             if (options.amount === undefined) {
-              throw new Error("Crypto payments require --amount <number>");
-            }
-            if (!Number.isFinite(options.amount) || options.amount <= 0) {
-              throw new Error(`Invalid --amount: ${options.amount}`);
-            }
-            if (!options.currency) {
-              throw new Error("Crypto payments require --currency <name>");
-            }
-            if (!options.network) {
               throw new Error(
-                "Crypto payments require --network <chain-name-or-id>",
+                "EVM address payments require --amount <n> --currency <token> --network <chain>",
+              );
+            }
+            // An EVM address is settled by a crypto-token swap on a chain
+            // network — the lightning rail (BTC/fiat) is never valid here.
+            if (options.network?.toLowerCase() === "lightning") {
+              throw new Error(
+                "An EVM address is paid with a crypto token over a chain network " +
+                  "(e.g. --currency USDC --network arbitrum). --network lightning " +
+                  "(BTC/fiat) is not valid for an EVM address.",
+              );
+            }
+            const rail = classifyRail({
+              currency: options.currency,
+              unit: options.unit,
+              network: options.network,
+            });
+            if (rail.kind !== "crypto") {
+              throw new Error(
+                "An EVM address is paid with a crypto token over a chain network " +
+                  "(e.g. --currency USDC --network arbitrum).",
               );
             }
             if (!isPlausibleEvmAddress(destination)) {
@@ -226,10 +273,7 @@ export function registerPayCommand(program: Command) {
                 `Recipient address does not look valid (expected 0x + 40 hex chars): ${destination}`,
               );
             }
-            const pair = await findSupportedPair(
-              options.currency,
-              options.network,
-            );
+            const pair = await findSupportedPair(rail.currency, rail.network);
             const nwc = await getClient(program);
             const { swapId } = await payCrypto({
               pair,

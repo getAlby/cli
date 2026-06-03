@@ -9,6 +9,14 @@ interface ErrorOutput {
   error: string;
 }
 
+interface PaymentWithFiat extends PayInvoiceResult {
+  amount_in_sats?: number;
+  fiat?: { amount: number; currency: string };
+}
+
+const pubkey = "02" + "a".repeat(64);
+const evm = "0x000000000000000000000000000000000000dead";
+
 describe("pay command — destination detection", () => {
   test("unknown destination format lists all 4 accepted shapes", () => {
     const result = runCli<ErrorOutput>(`pay notavaliddestination`);
@@ -20,114 +28,120 @@ describe("pay command — destination detection", () => {
     expect(result.output.error).toContain("EVM address");
   });
 
-  test("lightning address without --amount-sats is rejected before wallet load", () => {
+  test("lightning address without --amount is rejected before wallet load", () => {
     const result = runCli<ErrorOutput>(`pay alice@getalby.com`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats");
+    expect(result.output.error).toContain("--amount");
   });
 
-  test("keysend pubkey without --amount-sats is rejected before wallet load", () => {
-    const pubkey = "02" + "a".repeat(64);
+  test("keysend pubkey without --amount is rejected before wallet load", () => {
     const result = runCli<ErrorOutput>(`pay ${pubkey}`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats");
+    expect(result.output.error).toContain("--amount");
   });
 
   test("EVM address without --amount is rejected before wallet load", () => {
-    const result = runCli<ErrorOutput>(
-      `pay 0x000000000000000000000000000000000000dead`,
-    );
+    const result = runCli<ErrorOutput>(`pay ${evm}`);
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("--amount");
   });
+});
 
-  // Bitcoin destinations must use --amount-sats, not --amount.
-  test("lightning address with --amount (crypto flag) is rejected and points to --amount-sats", () => {
-    const result = runCli<ErrorOutput>(`pay alice@getalby.com --amount 100`);
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats");
-  });
-
-  test("keysend pubkey with --amount (crypto flag) is rejected and points to --amount-sats", () => {
-    const pubkey = "02" + "a".repeat(64);
-    const result = runCli<ErrorOutput>(`pay ${pubkey} --amount 100`);
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats");
-  });
-
-  test("BOLT-11 invoice with --amount (crypto flag) is rejected and points to --amount-sats", () => {
-    const result = runCli<ErrorOutput>(`pay lnbc1junk --amount 100`);
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats");
-  });
-
-  // Crypto destinations must use --amount, not --amount-sats.
-  test("EVM address with --amount-sats (bitcoin flag) is rejected and points to --amount", () => {
+describe("pay command — unified amount model validation", () => {
+  test("lightning address with --amount but no --currency is rejected", () => {
     const result = runCli<ErrorOutput>(
-      `pay 0x000000000000000000000000000000000000dead --amount-sats 10 --currency USDC --network arbitrum`,
-    );
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("--amount-sats is not valid");
-    expect(result.output.error).toContain("--amount");
-  });
-
-  // Unit-suffixed / non-numeric amounts must be rejected, not silently
-  // coerced (e.g. "123usd" → 123). The bitcoin path (--amount-sats) is parsed
-  // by the strict shared sats parser; the crypto path (--amount) by Number +
-  // a finiteness check.
-  test("lightning address with a non-numeric --amount-sats is rejected", () => {
-    const result = runCli<ErrorOutput>(
-      `pay alice@getalby.com --amount-sats 123usd`,
-    );
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Sats must be a whole number");
-  });
-
-  test("EVM address with a non-numeric --amount is rejected", () => {
-    const result = runCli<ErrorOutput>(
-      `pay 0x000000000000000000000000000000000000dead --amount 123usd --currency USDC --network arbitrum`,
-    );
-    expect(result.success).toBe(false);
-    expect(result.output.error).toContain("Invalid --amount");
-  });
-
-  test("EVM address without --currency is rejected", () => {
-    const result = runCli<ErrorOutput>(
-      `pay 0x000000000000000000000000000000000000dead --amount 10 --network arbitrum`,
+      `pay alice@getalby.com --amount 100 --network lightning`,
     );
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("--currency");
   });
 
-  test("EVM address without --network is rejected", () => {
+  test("lightning address with --amount but no --network is rejected", () => {
     const result = runCli<ErrorOutput>(
-      `pay 0x000000000000000000000000000000000000dead --amount 10 --currency USDC`,
+      `pay alice@getalby.com --amount 100 --currency BTC`,
     );
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("--network");
   });
 
-  test("--currency on a BOLT-11 invoice is rejected as not applicable", () => {
+  test("--currency BTC without --unit is rejected (sats/BTC ambiguity)", () => {
+    const result = runCli<ErrorOutput>(
+      `pay alice@getalby.com --amount 100 --currency BTC --network lightning`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--unit");
+  });
+
+  test("--unit on a fiat currency is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay alice@getalby.com --amount 5 --currency USD --unit sats --network lightning`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--unit is not valid");
+  });
+
+  test("a lightning address on a chain network is rejected (lightning-only)", () => {
+    const result = runCli<ErrorOutput>(
+      `pay alice@getalby.com --amount 10 --currency USDC --network arbitrum`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("lightning");
+  });
+
+  test("a non-numeric --amount is rejected at parse time", () => {
+    const result = runCli<ErrorOutput>(
+      `pay alice@getalby.com --amount 123usd --currency BTC --unit sats --network lightning`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("Amount must be a positive number");
+  });
+
+  test("EVM address with --currency BTC --network lightning is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay ${evm} --amount 10 --currency BTC --network lightning`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("EVM address");
+  });
+
+  test("EVM address without --currency is rejected", () => {
+    const result = runCli<ErrorOutput>(`pay ${evm} --amount 10 --network arbitrum`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--currency");
+  });
+
+  test("EVM address without --network is rejected", () => {
+    const result = runCli<ErrorOutput>(`pay ${evm} --amount 10 --currency USDC`);
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--network");
+  });
+
+  test("amount flags on a BOLT-11 invoice without --amount are rejected", () => {
     const result = runCli<ErrorOutput>(`pay lnbc1junk --currency USDT`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("not applicable to invoice payment");
+    expect(result.output.error).toContain("zero-amount invoice");
   });
 
   test("testnet/signet invoice prefixes (lntb...) are recognized as invoices", () => {
-    // Same path as the lnbc test above — exercises that lntb is treated as
-    // an invoice (not falling through to the unknown-destination error).
     const result = runCli<ErrorOutput>(`pay lntb1junk --currency USDT`);
     expect(result.success).toBe(false);
-    expect(result.output.error).toContain("not applicable to invoice payment");
+    expect(result.output.error).toContain("zero-amount invoice");
   });
 
   test("--comment on a keysend pubkey is rejected as not applicable", () => {
-    const pubkey = "02" + "a".repeat(64);
     const result = runCli<ErrorOutput>(
-      `pay ${pubkey} --amount-sats 100 --comment hi`,
+      `pay ${pubkey} --amount 100 --currency BTC --unit sats --network lightning --comment hi`,
     );
     expect(result.success).toBe(false);
     expect(result.output.error).toContain("not applicable to keysend payment");
+  });
+
+  test("--unit on an EVM (crypto) destination is rejected", () => {
+    const result = runCli<ErrorOutput>(
+      `pay ${evm} --amount 10 --currency USDC --unit sats --network arbitrum`,
+    );
+    expect(result.success).toBe(false);
+    expect(result.output.error).toContain("--unit");
   });
 });
 
@@ -142,7 +156,7 @@ describe("pay command — live integration", () => {
 
   test("pay <bolt11> pays an invoice end-to-end", () => {
     const invoiceResult = runCli<MakeInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-invoice --amount-sats 100`,
+      `-c "${receiver.nwcUrl}" make-invoice --amount 100 --currency BTC --unit sats --network lightning`,
     );
     expect(invoiceResult.success).toBe(true);
 
@@ -153,22 +167,32 @@ describe("pay command — live integration", () => {
     expect(paymentResult.output.preimage).toBeDefined();
   });
 
-  test("pay <lightning-address> --amount-sats fetches an invoice and pays it", () => {
+  test("pay <lightning-address> --currency BTC --unit sats pays it", () => {
     const paymentResult = runCli<PayInvoiceResult>(
-      `-c "${sender.nwcUrl}" pay ${receiver.lightningAddress} --amount-sats 100`,
+      `-c "${sender.nwcUrl}" pay ${receiver.lightningAddress} --amount 100 --currency BTC --unit sats --network lightning`,
     );
     expect(paymentResult.success).toBe(true);
     expect(paymentResult.output.preimage).toBeDefined();
   });
 
-  test("pay <pubkey> --amount-sats sends a keysend payment", () => {
+  test("pay <lightning-address> --currency USD resolves fiat to sats and pays", () => {
+    const paymentResult = runCli<PaymentWithFiat>(
+      `-c "${sender.nwcUrl}" pay ${receiver.lightningAddress} --amount 1 --currency USD --network lightning`,
+    );
+    expect(paymentResult.success).toBe(true);
+    expect(paymentResult.output.preimage).toBeDefined();
+    expect(paymentResult.output.amount_in_sats).toBeGreaterThan(0);
+    expect(paymentResult.output.fiat).toEqual({ amount: 1, currency: "USD" });
+  });
+
+  test("pay <pubkey> --currency BTC --unit sats sends a keysend payment", () => {
     const infoResult = runCli<GetInfoResult>(
       `-c "${receiver.nwcUrl}" get-info`,
     );
     expect(infoResult.success).toBe(true);
 
     const paymentResult = runCli<PayKeysendResult>(
-      `-c "${sender.nwcUrl}" pay ${infoResult.output.pubkey} --amount-sats 100`,
+      `-c "${sender.nwcUrl}" pay ${infoResult.output.pubkey} --amount 100 --currency BTC --unit sats --network lightning`,
     );
     expect(paymentResult.success).toBe(true);
     expect(paymentResult.output.preimage).toBeDefined();

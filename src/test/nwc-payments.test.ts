@@ -19,7 +19,7 @@ describe("NWC Payment Commands", () => {
   test("make-invoice and pay-invoice", () => {
     // Create invoice with receiver wallet
     const invoiceResult = runCli<MakeInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-invoice --amount-sats 100`
+      `-c "${receiver.nwcUrl}" make-invoice --amount 100 --currency BTC --unit sats --network lightning`
     );
     expect(invoiceResult.success).toBe(true);
     expect(invoiceResult.output.invoice).toBeDefined();
@@ -35,7 +35,7 @@ describe("NWC Payment Commands", () => {
   test("lookup-invoice finds paid invoice", () => {
     // Create an invoice
     const invoiceResult = runCli<MakeInvoiceResult>(
-      `-c "${receiver.nwcUrl}" make-invoice --amount-sats 50`
+      `-c "${receiver.nwcUrl}" make-invoice --amount 50 --currency BTC --unit sats --network lightning`
     );
     expect(invoiceResult.success).toBe(true);
 
@@ -60,7 +60,7 @@ describe("NWC Payment Commands", () => {
 
     // Send keysend payment
     const keysendResult = runCli<PayKeysendResult>(
-      `-c "${sender.nwcUrl}" pay-keysend -p "${infoResult.output.pubkey}" --amount-sats 100`
+      `-c "${sender.nwcUrl}" pay-keysend -p "${infoResult.output.pubkey}" --amount 100 --currency BTC --unit sats --network lightning`
     );
     expect(keysendResult.success).toBe(true);
     expect(keysendResult.output.preimage).toBeDefined();
