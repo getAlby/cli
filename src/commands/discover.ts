@@ -6,7 +6,8 @@ export function registerDiscoverCommand(program: Command) {
   program
     .command("discover")
     .description(
-      "Search 402index.io for paid API services that accept bitcoin/lightning",
+      "Search 402index.io for paid API services (L402, x402, MPP). " +
+        "Non-lightning services can be paid in sats via the l402.space bridge - see fetch.",
     )
     .option("-q, --query <text>", "Search query")
     .option(

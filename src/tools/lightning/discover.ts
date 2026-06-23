@@ -15,8 +15,9 @@ export async function discover(params: DiscoverParams) {
   if (params.health) url.searchParams.set("health", params.health);
   if (params.sort) url.searchParams.set("sort", params.sort);
 
-  // Filter to BTC (lightning) services server-side
-  url.searchParams.set("payment_asset", "BTC");
+  // No payment_asset filter: return services across all protocols (L402, x402,
+  // MPP). Non-lightning services (e.g. x402/USDC) can still be paid in sats by
+  // fetching them through the l402.space bridge - see the fetch command.
   url.searchParams.set("limit", String(requestedLimit));
 
   const controller = new AbortController();
@@ -65,6 +66,7 @@ export async function discover(params: DiscoverParams) {
       description: s.description,
       url: s.url,
       protocol: s.protocol,
+      payment_network: s.payment_network,
       price_sats: s.price_sats,
       price_usd: s.price_usd,
       category: s.category,
