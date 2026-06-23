@@ -66,7 +66,6 @@ export async function discover(params: DiscoverParams) {
       description: s.description,
       url: s.url,
       protocol: s.protocol,
-      payment_network: s.payment_network,
       price_sats: s.price_sats,
       price_usd: s.price_usd,
       category: s.category,
