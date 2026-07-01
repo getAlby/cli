@@ -19,10 +19,17 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
 
   if (method && method !== "GET" && method !== "HEAD") {
     requestOptions.body = params.body;
-    requestOptions.headers = {
-      "Content-Type": "application/json",
-      ...params.headers,
-    };
+    // A body is always passed as JSON, so default the Content-Type. The agent
+    // isn't required to set the header itself but might do so anyway, so only
+    // add our default when it's absent to avoid a duplicate Content-Type.
+    const headers = { ...params.headers };
+    const hasContentType = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "content-type",
+    );
+    if (!hasContentType) {
+      headers["Content-Type"] = "application/json";
+    }
+    requestOptions.headers = headers;
   } else if (params.headers) {
     requestOptions.headers = params.headers;
   }
