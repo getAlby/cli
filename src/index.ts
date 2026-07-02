@@ -20,6 +20,7 @@ import { registerSignMessageCommand } from "./commands/sign-message.js";
 import { registerFiatToSatsCommand } from "./commands/fiat-to-sats.js";
 import { registerSatsToFiatCommand } from "./commands/sats-to-fiat.js";
 import { registerParseInvoiceCommand } from "./commands/parse-invoice.js";
+import { registerParseBip21Command } from "./commands/parse-bip21.js";
 import { registerVerifyPreimageCommand } from "./commands/verify-preimage.js";
 import { registerRequestInvoiceFromLightningAddressCommand } from "./commands/request-invoice-from-lightning-address.js";
 import { registerFetch402Command } from "./commands/fetch.js";
@@ -100,6 +101,7 @@ program.commandsGroup("Lightning Tools (no wallet connection required):");
 registerFiatToSatsCommand(program);
 registerSatsToFiatCommand(program);
 registerParseInvoiceCommand(program);
+registerParseBip21Command(program);
 registerVerifyPreimageCommand(program);
 registerRequestInvoiceFromLightningAddressCommand(program);
 
