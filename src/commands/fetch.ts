@@ -25,6 +25,38 @@ function parseMaxAmountSats(value: string): number {
   return sats;
 }
 
+/**
+ * Parse and validate the `--credentials` JSON. It must be an object with string
+ * `header` and `value` fields, matching the reusable credential emitted in a
+ * previous fetch's `payment.credentials`. Rejects anything else so a malformed
+ * credential fails loudly instead of being silently ignored by the fetch helper.
+ */
+function parseCredentials(value: string): { header: string; value: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new InvalidArgumentError(
+      "--credentials must be valid JSON (e.g. '{\"header\":\"Authorization\",\"value\":\"L402 ...\"}')",
+    );
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof (parsed as Record<string, unknown>).header !== "string" ||
+    typeof (parsed as Record<string, unknown>).value !== "string"
+  ) {
+    throw new InvalidArgumentError(
+      '--credentials must be a JSON object with string "header" and "value" fields',
+    );
+  }
+  const { header, value: headerValue } = parsed as {
+    header: string;
+    value: string;
+  };
+  return { header, value: headerValue };
+}
+
 export function registerFetch402Command(program: Command) {
   program
     .command("fetch")
@@ -53,10 +85,20 @@ export function registerFetch402Command(program: Command) {
       "--network <name>",
       "Rail for --max-amount — currently must be lightning",
     )
+    .option(
+      "--credentials <json>",
+      "Reusable payment credential from a previous fetch " +
+        '(JSON: {"header":"...","value":"..."}). When set, the request is ' +
+        "authorized with it and never pays again — use it to authorize " +
+        "follow-up requests (e.g. polling) without re-paying.",
+    )
     .addHelpText(
       "after",
       "\nExample:\n" +
-        '  $ npx @getalby/cli fetch "https://example.com/api" --max-amount 1000 --currency BTC --unit sats --network lightning\n',
+        '  $ npx @getalby/cli fetch "https://example.com/api" --max-amount 1000 --currency BTC --unit sats --network lightning\n' +
+        "\nA successful response includes a `payment` object with the fees paid and a\n" +
+        "reusable `credentials` value. Reuse it to avoid paying again:\n" +
+        '  $ npx @getalby/cli fetch "https://example.com/api" --credentials \'{"header":"Authorization","value":"L402 ..."}\'\n',
     )
     .action(async (url, options) => {
       await handleError(async () => {
@@ -91,6 +133,9 @@ export function registerFetch402Command(program: Command) {
           // --unit is restricted to sats above, so --max-amount is already the
           // sats cap. When omitted, the tool applies its default.
           maxAmountSats: options.maxAmount,
+          credentials: options.credentials
+            ? parseCredentials(options.credentials)
+            : undefined,
         });
         output(result);
       });
