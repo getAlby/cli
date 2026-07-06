@@ -50,25 +50,25 @@ afterEach(() => {
 });
 
 describe("discover l402.space bridge wrapping", () => {
-  test("wraps every non-lightning rail in the bridge URL (x402 and MPP alike)", async () => {
-    // MPP and x402 are payment-network agnostic - USDC on Base/Stellar/EVM,
-    // USD via Stripe, or no declared rail - so none of these settle over
-    // lightning and all must be bridged.
+  test("wraps services on a bridge-funded rail (base/solana/tempo, incl. eip155:8453 alias)", async () => {
     stubIndexResponse([
       { url: "https://a.example/api", protocol: "x402", payment_network: "Base" },
       {
         url: "https://b.example/api",
         protocol: "x402",
-        payment_network: "eip155:8453",
+        payment_network: "eip155:8453", // CAIP-2 for Base mainnet
       },
       {
         url: "https://c.example/api",
         protocol: "x402",
-        payment_network: "stellar",
+        payment_network: "Solana",
       },
-      { url: "https://d.example/api", protocol: "MPP", payment_network: "Stripe" },
-      { url: "https://e.example/api", protocol: "MPP", payment_network: null },
-      { url: "https://f.example/api", protocol: "x402", payment_network: null },
+      {
+        url: "https://d.example/api",
+        protocol: "x402",
+        payment_network: "Base, Solana",
+      },
+      { url: "https://e.example/api", protocol: "MPP", payment_network: "Tempo" },
     ]);
 
     const result = await discover({});
@@ -79,7 +79,41 @@ describe("discover l402.space bridge wrapping", () => {
       bridged("https://c.example/api"),
       bridged("https://d.example/api"),
       bridged("https://e.example/api"),
-      bridged("https://f.example/api"),
+    ]);
+  });
+
+  test("leaves rails the bridge can't settle unwrapped (stellar/polygon/stripe/testnet/none)", async () => {
+    // l402.space only funds base/solana/tempo/lightning, so these aren't
+    // payable from a lightning wallet at all - wrapping them would just hand
+    // back a bridge URL that 402s. Note "Base Sepolia" must NOT match "base".
+    stubIndexResponse([
+      {
+        url: "https://a.example/api",
+        protocol: "x402",
+        payment_network: "stellar",
+      },
+      {
+        url: "https://b.example/api",
+        protocol: "x402",
+        payment_network: "Polygon",
+      },
+      { url: "https://c.example/api", protocol: "MPP", payment_network: "Stripe" },
+      {
+        url: "https://d.example/api",
+        protocol: "x402",
+        payment_network: "Base Sepolia",
+      },
+      { url: "https://e.example/api", protocol: "MPP", payment_network: null },
+    ]);
+
+    const result = await discover({});
+
+    expect(result.services.map((s) => s.url)).toEqual([
+      "https://a.example/api",
+      "https://b.example/api",
+      "https://c.example/api",
+      "https://d.example/api",
+      "https://e.example/api",
     ]);
   });
 

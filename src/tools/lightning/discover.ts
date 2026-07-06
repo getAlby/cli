@@ -6,32 +6,55 @@ export interface DiscoverParams {
   limit?: number;
 }
 
-// The l402.space bridge re-wraps any 402-gated upstream as an L402 (lightning)
-// challenge, so a lightning wallet can pay endpoints it couldn't settle
-// natively (e.g. USDC-only x402). We wrap non-lightning discover results in the
-// bridge URL up front so the URL a caller fetches is explicit - `fetch` pays it
-// as a normal L402 endpoint, with no hidden per-request redirection.
+// The l402.space bridge re-wraps a 402-gated upstream as an L402 (lightning)
+// challenge and settles the upstream on our behalf, so a lightning wallet can
+// pay endpoints it couldn't settle natively (e.g. USDC-only x402 on Base). We
+// wrap bridgeable discover results in the bridge URL up front so the URL a
+// caller fetches is explicit - `fetch` pays it as a normal L402 endpoint, with
+// no hidden per-request redirection.
 const L402_SPACE_BRIDGE = "https://l402.space/";
 
 function bridgeUrl(url: string): string {
   return `${L402_SPACE_BRIDGE}${encodeURIComponent(url)}`;
 }
 
-// What's payable from a lightning wallet is decided by the rail, not the
-// protocol: x402 and MPP are payment-network agnostic (USDC on Base, USD via
-// Stripe, ...), so a lightning wallet can only settle them when their network
-// is Lightning. L402 is the exception - it's lightning by definition, so it's
-// always native even when the index reports no explicit network. Everything
-// else (Base, Stellar, Solana, EVM chains, Stripe, ...) needs the bridge.
+// The bridge can only settle upstreams on the rails it has funded wallets for -
+// l402.space/api/info reports these as "base", "solana", "tempo", "lightning".
+// "lightning" is handled as native (paid directly), so these are the extra
+// rails the bridge unlocks. Assets follow the rail (USDC on base/solana, TIP-20
+// on tempo). Rails outside this set (Stellar, Polygon, Stripe, testnets, ...)
+// aren't payable from a lightning wallet at all - we leave those unwrapped.
+const BRIDGE_FUNDED_NETWORKS = new Set(["base", "solana", "tempo"]);
+
+// The index reports some rails as CAIP-2 chain ids; normalize the ones that map
+// onto a funded network (eip155:8453 is Base mainnet). Testnets like Base
+// Sepolia (eip155:84532 / "Base Sepolia") intentionally don't match.
+const NETWORK_ALIASES: Record<string, string> = { "eip155:8453": "base" };
+
+// payment_network can list several rails, e.g. "Base, Solana".
+function paymentRails(paymentNetwork: string | null): string[] {
+  return (paymentNetwork ?? "").split(",").map((rail) => {
+    const normalized = rail.trim().toLowerCase();
+    return NETWORK_ALIASES[normalized] ?? normalized;
+  });
+}
+
+// L402 is lightning by definition (native even when the index reports no
+// network); x402/MPP are rail-agnostic and only native when their rail is
+// Lightning.
 function isLightningNative(
   protocol: string,
   paymentNetwork: string | null,
 ): boolean {
-  if (protocol === "L402") return true;
-  // payment_network can list several rails, e.g. "Base, Solana".
-  return (paymentNetwork ?? "")
-    .split(",")
-    .some((rail) => rail.trim().toLowerCase() === "lightning");
+  return (
+    protocol === "L402" || paymentRails(paymentNetwork).includes("lightning")
+  );
+}
+
+function isBridgeable(paymentNetwork: string | null): boolean {
+  return paymentRails(paymentNetwork).some((rail) =>
+    BRIDGE_FUNDED_NETWORKS.has(rail),
+  );
 }
 
 export async function discover(params: DiscoverParams) {
@@ -44,8 +67,9 @@ export async function discover(params: DiscoverParams) {
   if (params.sort) url.searchParams.set("sort", params.sort);
 
   // No payment_asset filter: return services across all protocols (L402, x402,
-  // MPP). Non-lightning results are returned with a bridged l402.space URL (see
-  // below) so they stay payable in sats via the fetch command.
+  // MPP). Results on a bridge-funded rail are returned with a bridged
+  // l402.space URL (see below) so they stay payable in sats via the fetch
+  // command; unsupported rails keep their own URL.
   url.searchParams.set("limit", String(requestedLimit));
 
   const controller = new AbortController();
@@ -92,9 +116,11 @@ export async function discover(params: DiscoverParams) {
     services: data.services.map((s) => ({
       name: s.name,
       description: s.description,
-      url: isLightningNative(s.protocol, s.payment_network)
-        ? s.url
-        : bridgeUrl(s.url),
+      url:
+        isLightningNative(s.protocol, s.payment_network) ||
+        !isBridgeable(s.payment_network)
+          ? s.url
+          : bridgeUrl(s.url),
       protocol: s.protocol,
       payment_network: s.payment_network,
       price_sats: s.price_sats,
