@@ -7,7 +7,11 @@ import { discover } from "../tools/lightning/discover.js";
 // lightning-payable services (L402, MPP, or x402 on the Lightning network) keep
 // their own URL.
 function stubIndexResponse(
-  services: Array<{ url: string; protocol: string; payment_network: string }>,
+  services: Array<{
+    url: string;
+    protocol: string;
+    payment_network: string | null;
+  }>,
 ) {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(
@@ -46,7 +50,10 @@ afterEach(() => {
 });
 
 describe("discover l402.space bridge wrapping", () => {
-  test("wraps non-lightning services (x402 on Base/Stellar/EVM) in the bridge URL", async () => {
+  test("wraps every non-lightning rail in the bridge URL (x402 and MPP alike)", async () => {
+    // MPP and x402 are payment-network agnostic - USDC on Base/Stellar/EVM,
+    // USD via Stripe, or no declared rail - so none of these settle over
+    // lightning and all must be bridged.
     stubIndexResponse([
       { url: "https://a.example/api", protocol: "x402", payment_network: "Base" },
       {
@@ -59,6 +66,9 @@ describe("discover l402.space bridge wrapping", () => {
         protocol: "x402",
         payment_network: "stellar",
       },
+      { url: "https://d.example/api", protocol: "MPP", payment_network: "Stripe" },
+      { url: "https://e.example/api", protocol: "MPP", payment_network: null },
+      { url: "https://f.example/api", protocol: "x402", payment_network: null },
     ]);
 
     const result = await discover({});
@@ -67,21 +77,32 @@ describe("discover l402.space bridge wrapping", () => {
       bridged("https://a.example/api"),
       bridged("https://b.example/api"),
       bridged("https://c.example/api"),
+      bridged("https://d.example/api"),
+      bridged("https://e.example/api"),
+      bridged("https://f.example/api"),
     ]);
   });
 
   test("leaves natively lightning-payable services unwrapped", async () => {
     stubIndexResponse([
+      // L402 is lightning by definition, even when the index reports no network.
       {
         url: "https://l402.example/api",
         protocol: "L402",
         payment_network: "Lightning",
       },
-      { url: "https://mpp.example/api", protocol: "MPP", payment_network: "" },
+      { url: "https://l402null.example/api", protocol: "L402", payment_network: null },
+      // x402 does settle over lightning when its rail is Lightning...
       {
         url: "https://x402ln.example/api",
         protocol: "x402",
         payment_network: "Lightning",
+      },
+      // ...including when Lightning is one of several listed rails.
+      {
+        url: "https://multi.example/api",
+        protocol: "x402",
+        payment_network: "Lightning, Base",
       },
     ]);
 
@@ -89,8 +110,9 @@ describe("discover l402.space bridge wrapping", () => {
 
     expect(result.services.map((s) => s.url)).toEqual([
       "https://l402.example/api",
-      "https://mpp.example/api",
+      "https://l402null.example/api",
       "https://x402ln.example/api",
+      "https://multi.example/api",
     ]);
   });
 

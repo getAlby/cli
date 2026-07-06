@@ -17,18 +17,21 @@ function bridgeUrl(url: string): string {
   return `${L402_SPACE_BRIDGE}${encodeURIComponent(url)}`;
 }
 
-// L402 and MPP settle over lightning by definition; x402 does only when its
-// payment network is Lightning. Everything else (Base, Stellar, EVM chains, ...)
-// needs the bridge to be payable from a lightning wallet.
+// What's payable from a lightning wallet is decided by the rail, not the
+// protocol: x402 and MPP are payment-network agnostic (USDC on Base, USD via
+// Stripe, ...), so a lightning wallet can only settle them when their network
+// is Lightning. L402 is the exception - it's lightning by definition, so it's
+// always native even when the index reports no explicit network. Everything
+// else (Base, Stellar, Solana, EVM chains, Stripe, ...) needs the bridge.
 function isLightningNative(
   protocol: string,
   paymentNetwork: string | null,
 ): boolean {
-  return (
-    protocol === "L402" ||
-    protocol === "MPP" ||
-    (paymentNetwork ?? "").toLowerCase() === "lightning"
-  );
+  if (protocol === "L402") return true;
+  // payment_network can list several rails, e.g. "Base, Solana".
+  return (paymentNetwork ?? "")
+    .split(",")
+    .some((rail) => rail.trim().toLowerCase() === "lightning");
 }
 
 export async function discover(params: DiscoverParams) {
