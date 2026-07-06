@@ -149,6 +149,9 @@ export async function discover(params: DiscoverParams) {
 
   return {
     services: payable,
-    total: payable.length,
+    // total is the index's match count for this query, so the caller knows the
+    // corpus is larger than the returned page - not the number of services we
+    // filtered/sliced into `services`.
+    total: data.total,
   };
 }

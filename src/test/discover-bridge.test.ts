@@ -31,7 +31,9 @@ function stubIndexResponse(
           latency_p50_ms: null,
           http_method: "GET",
         })),
-        total: services.length,
+        // Sentinel distinct from services.length: total is the index's match
+        // count, so it must survive our payability filtering/slicing unchanged.
+        total: 9999,
         limit: 10,
         offset: 0,
       }),
@@ -122,10 +124,11 @@ describe("discover l402.space bridge wrapping", () => {
     const result = await discover({});
 
     expect(result.services).toEqual([]);
-    expect(result.total).toBe(0);
+    // total still reports the index's match count, not the filtered-out zero.
+    expect(result.total).toBe(9999);
   });
 
-  test("returns only the payable services from a mixed page and reports their count", async () => {
+  test("returns only the payable services from a mixed page, keeping the index total", async () => {
     stubIndexResponse([
       {
         url: "https://ln.example/api",
@@ -147,7 +150,7 @@ describe("discover l402.space bridge wrapping", () => {
       "https://ln.example/api",
       bridged("https://base.example/api"),
     ]);
-    expect(result.total).toBe(2);
+    expect(result.total).toBe(9999);
   });
 
   test("leaves natively lightning-payable services unwrapped", async () => {
