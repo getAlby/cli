@@ -44,13 +44,16 @@ function stubIndexResponse(
 
 const bridged = (url: string) =>
   "https://l402.space/" + encodeURIComponent(url);
+// MPP upstreams route through the dedicated mpp-lightning inbound endpoint.
+const bridgedMpp = (url: string) =>
+  "https://l402.space/mpp-lightning/" + encodeURIComponent(url);
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("discover l402.space bridge wrapping", () => {
-  test("wraps services on a bridge-funded rail (base/solana/tempo, incl. eip155:8453 alias)", async () => {
+  test("wraps x402 services on a bridge-funded rail via the default endpoint (base/solana, incl. eip155:8453 alias)", async () => {
     stubIndexResponse([
       { url: "https://a.example/api", protocol: "x402", payment_network: "Base" },
       {
@@ -68,7 +71,6 @@ describe("discover l402.space bridge wrapping", () => {
         protocol: "x402",
         payment_network: "Base, Solana",
       },
-      { url: "https://e.example/api", protocol: "MPP", payment_network: "Tempo" },
     ]);
 
     const result = await discover({});
@@ -78,8 +80,19 @@ describe("discover l402.space bridge wrapping", () => {
       bridged("https://b.example/api"),
       bridged("https://c.example/api"),
       bridged("https://d.example/api"),
-      bridged("https://e.example/api"),
     ]);
+  });
+
+  test("routes MPP services through the dedicated mpp-lightning endpoint, not the default one", async () => {
+    // MPP challenges can't be folded into an L402 one, so an MPP upstream must
+    // use l402.space/mpp-lightning/ to still hand our wallet a lightning invoice.
+    stubIndexResponse([
+      { url: "https://mpp.example/api", protocol: "MPP", payment_network: "Tempo" },
+    ]);
+
+    const result = await discover({});
+
+    expect(result.services[0].url).toBe(bridgedMpp("https://mpp.example/api"));
   });
 
   test("drops services on rails the bridge can't settle (stellar/polygon/stripe/testnet/none)", async () => {

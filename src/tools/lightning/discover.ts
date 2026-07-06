@@ -6,16 +6,21 @@ export interface DiscoverParams {
   limit?: number;
 }
 
-// The l402.space bridge re-wraps a 402-gated upstream as an L402 (lightning)
-// challenge and settles the upstream on our behalf, so a lightning wallet can
-// pay endpoints it couldn't settle natively (e.g. USDC-only x402 on Base). We
-// wrap bridgeable discover results in the bridge URL up front so the URL a
-// caller fetches is explicit - `fetch` pays it as a normal L402 endpoint, with
-// no hidden per-request redirection.
+// The l402.space bridge settles a 402-gated upstream on our behalf and charges
+// us over lightning, so a lightning wallet can pay endpoints it couldn't settle
+// natively (e.g. USDC-only x402 on Base). We wrap bridgeable discover results in
+// the bridge URL up front so the URL a caller fetches is explicit - `fetch` pays
+// it over lightning, with no hidden per-request redirection.
 const L402_SPACE_BRIDGE = "https://l402.space/";
 
-function bridgeUrl(url: string): string {
-  return `${L402_SPACE_BRIDGE}${encodeURIComponent(url)}`;
+// The path prefix selects the *inbound* rail we pay the gateway over (see
+// l402.space/api/info). We always pay over lightning: x402 upstreams settle fine
+// via the default path (the gateway folds a lightning L402 challenge), but MPP
+// challenges can't be folded into an L402 one, so MPP upstreams need the
+// dedicated mpp-lightning endpoint to still hand us a lightning invoice.
+function bridgeUrl(url: string, protocol: string): string {
+  const inboundPath = protocol === "MPP" ? "mpp-lightning/" : "";
+  return `${L402_SPACE_BRIDGE}${inboundPath}${encodeURIComponent(url)}`;
 }
 
 // The bridge can only settle upstreams on the rails it has funded wallets for -
@@ -129,7 +134,7 @@ export async function discover(params: DiscoverParams) {
       // bridge-funded rail is wrapped so fetch pays it over lightning.
       url: isLightningNative(s.protocol, s.payment_network)
         ? s.url
-        : bridgeUrl(s.url),
+        : bridgeUrl(s.url, s.protocol),
       protocol: s.protocol,
       payment_network: s.payment_network,
       price_sats: s.price_sats,
