@@ -66,11 +66,14 @@ export async function discover(params: DiscoverParams) {
   if (params.health) url.searchParams.set("health", params.health);
   if (params.sort) url.searchParams.set("sort", params.sort);
 
-  // No payment_asset filter: return services across all protocols (L402, x402,
-  // MPP). Results on a bridge-funded rail are returned with a bridged
-  // l402.space URL (see below) so they stay payable in sats via the fetch
-  // command; unsupported rails keep their own URL.
-  url.searchParams.set("limit", String(requestedLimit));
+  // We return services across all protocols (L402, x402, MPP) but drop any the
+  // wallet can't reach (rails the bridge doesn't fund), so every result is
+  // payable in sats via fetch. The index can't filter by rail server-side
+  // (only by payment_asset, which can't tell USDC-on-Base apart from
+  // USDC-on-Stellar), so we filter below and over-fetch a margin to still
+  // return up to requestedLimit payable results. The index caps a page at 200.
+  const fetchLimit = Math.min(200, requestedLimit * 2);
+  url.searchParams.set("limit", String(fetchLimit));
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 5000);
@@ -112,15 +115,21 @@ export async function discover(params: DiscoverParams) {
     offset: number;
   };
 
-  return {
-    services: data.services.map((s) => ({
+  const payable = data.services
+    .filter(
+      (s) =>
+        isLightningNative(s.protocol, s.payment_network) ||
+        isBridgeable(s.payment_network),
+    )
+    .slice(0, requestedLimit)
+    .map((s) => ({
       name: s.name,
       description: s.description,
-      url:
-        isLightningNative(s.protocol, s.payment_network) ||
-        !isBridgeable(s.payment_network)
-          ? s.url
-          : bridgeUrl(s.url),
+      // Everything here is payable: native lightning keeps its own URL, a
+      // bridge-funded rail is wrapped so fetch pays it over lightning.
+      url: isLightningNative(s.protocol, s.payment_network)
+        ? s.url
+        : bridgeUrl(s.url),
       protocol: s.protocol,
       payment_network: s.payment_network,
       price_sats: s.price_sats,
@@ -131,7 +140,10 @@ export async function discover(params: DiscoverParams) {
       reliability_score: s.reliability_score,
       latency_p50_ms: s.latency_p50_ms,
       http_method: s.http_method,
-    })),
-    total: data.total,
+    }));
+
+  return {
+    services: payable,
+    total: payable.length,
   };
 }

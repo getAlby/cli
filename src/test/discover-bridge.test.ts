@@ -82,10 +82,10 @@ describe("discover l402.space bridge wrapping", () => {
     ]);
   });
 
-  test("leaves rails the bridge can't settle unwrapped (stellar/polygon/stripe/testnet/none)", async () => {
+  test("drops services on rails the bridge can't settle (stellar/polygon/stripe/testnet/none)", async () => {
     // l402.space only funds base/solana/tempo/lightning, so these aren't
-    // payable from a lightning wallet at all - wrapping them would just hand
-    // back a bridge URL that 402s. Note "Base Sepolia" must NOT match "base".
+    // payable from a lightning wallet at all. discover must never surface a
+    // service the wallet can't pay. Note "Base Sepolia" must NOT match "base".
     stubIndexResponse([
       {
         url: "https://a.example/api",
@@ -108,13 +108,33 @@ describe("discover l402.space bridge wrapping", () => {
 
     const result = await discover({});
 
-    expect(result.services.map((s) => s.url)).toEqual([
-      "https://a.example/api",
-      "https://b.example/api",
-      "https://c.example/api",
-      "https://d.example/api",
-      "https://e.example/api",
+    expect(result.services).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  test("returns only the payable services from a mixed page and reports their count", async () => {
+    stubIndexResponse([
+      {
+        url: "https://ln.example/api",
+        protocol: "L402",
+        payment_network: "Lightning",
+      },
+      {
+        url: "https://stellar.example/api",
+        protocol: "x402",
+        payment_network: "stellar",
+      },
+      { url: "https://base.example/api", protocol: "x402", payment_network: "Base" },
+      { url: "https://stripe.example/api", protocol: "MPP", payment_network: "Stripe" },
     ]);
+
+    const result = await discover({});
+
+    expect(result.services.map((s) => s.url)).toEqual([
+      "https://ln.example/api",
+      bridged("https://base.example/api"),
+    ]);
+    expect(result.total).toBe(2);
   });
 
   test("leaves natively lightning-payable services unwrapped", async () => {
