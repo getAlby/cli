@@ -106,17 +106,28 @@ export function registerFetch402Command(program: Command) {
         // the only supported rail is BTC/sats over lightning — the cap is
         // inherently a sats spend limit — but it goes through the shared
         // classifier so the surface matches the rest of the CLI and can grow.
+        // The classifier speaks the whole CLI's vocabulary (fiat codes, chain
+        // networks), so its raw errors would advertise rails fetch doesn't
+        // accept and contradict this command's help; collapse any rejection —
+        // and any non-BTC/sats rail it does classify — into one message that
+        // matches what fetch actually supports.
         if (options.maxAmount !== undefined) {
-          const rail = classifyRail({
-            currency: options.currency,
-            unit: options.unit,
-            network: options.network,
-          });
+          const capRailError = new Error(
+            "fetch's --max-amount spend cap currently supports only " +
+              "--currency BTC --unit sats --network lightning",
+          );
+          let rail;
+          try {
+            rail = classifyRail({
+              currency: options.currency,
+              unit: options.unit,
+              network: options.network,
+            });
+          } catch {
+            throw capRailError;
+          }
           if (rail.kind !== "bitcoin" || rail.unit !== "sats") {
-            throw new Error(
-              "fetch's --max-amount spend cap currently supports only " +
-                "--currency BTC --unit sats --network lightning",
-            );
+            throw capRailError;
           }
         } else if (options.currency || options.unit || options.network) {
           throw new Error(

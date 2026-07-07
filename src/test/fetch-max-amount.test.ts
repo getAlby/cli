@@ -46,4 +46,28 @@ describe("fetch --max-amount strict parsing", () => {
       "currently supports only --currency BTC --unit sats --network lightning",
     );
   });
+
+  // The cap goes through the shared amount model, whose errors speak the whole
+  // CLI's vocabulary (fiat codes, chain names like "arbitrum"). Those would
+  // advertise rails fetch can't pay a cap in and contradict its help, so every
+  // rejected combination must surface fetch's own single message instead.
+  test.each([
+    ["--max-amount 5", "no denomination at all"],
+    ["--max-amount 5 --currency USD --unit sats", "fiat with a sub-unit"],
+    ["--max-amount 5 --currency BTC", "BTC without --network"],
+    ["--max-amount 5 --currency USDC --network arbitrum", "a token on a chain"],
+  ])(
+    "surfaces fetch's own cap message, not the shared classifier's, for %s (%s)",
+    (flags) => {
+      const result = runCli<ErrorOutput>(`fetch http://example.invalid ${flags}`);
+      expect(result.success).toBe(false);
+      expect(result.output.error).toBe(
+        "fetch's --max-amount spend cap currently supports only " +
+          "--currency BTC --unit sats --network lightning",
+      );
+      // None of the shared model's cross-rail vocabulary leaks through.
+      expect(result.output.error).not.toContain("arbitrum");
+      expect(result.output.error).not.toContain("BTC|USD|EUR|USDC");
+    },
+  );
 });
