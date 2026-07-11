@@ -31,10 +31,15 @@ function bridgeUrl(url: string, protocol: string): string {
 // aren't payable from a lightning wallet at all - we leave those unwrapped.
 const BRIDGE_FUNDED_NETWORKS = new Set(["base", "solana", "tempo"]);
 
-// The index reports some rails as CAIP-2 chain ids; normalize the ones that map
-// onto a funded network (eip155:8453 is Base mainnet). Testnets like Base
-// Sepolia (eip155:84532 / "Base Sepolia") intentionally don't match.
-const NETWORK_ALIASES: Record<string, string> = { "eip155:8453": "base" };
+// The index reports some rails as CAIP-2 chain ids; normalize the ones that
+// map onto rails we handle (eip155:8453 is Base mainnet; the bip122 id is
+// Bitcoin mainnet, which lightning-native x402 challenges use - e.g.
+// x402.albylabs.com - and must stay unwrapped, not bridged). Testnets like
+// Base Sepolia (eip155:84532 / "Base Sepolia") intentionally don't match.
+const NETWORK_ALIASES: Record<string, string> = {
+  "eip155:8453": "base",
+  "bip122:000000000019d6689c085ae165831e93": "lightning",
+};
 
 // payment_network can list several rails, e.g. "Base, Solana".
 function paymentRails(paymentNetwork: string | null): string[] {
