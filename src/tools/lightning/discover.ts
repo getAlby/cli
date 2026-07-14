@@ -13,14 +13,13 @@ export interface DiscoverParams {
 // it over lightning, with no hidden per-request redirection.
 const L402_SPACE_BRIDGE = "https://l402.space/";
 
-// The path prefix selects the *inbound* rail we pay the gateway over (see
-// l402.space/api/info). We always pay over lightning: x402 upstreams settle fine
-// via the default path (the gateway folds a lightning L402 challenge), but MPP
-// challenges can't be folded into an L402 one, so MPP upstreams need the
-// dedicated mpp-lightning endpoint to still hand us a lightning invoice.
-function bridgeUrl(url: string, protocol: string): string {
-  const inboundPath = protocol === "MPP" ? "mpp-lightning/" : "";
-  return `${L402_SPACE_BRIDGE}${inboundPath}${encodeURIComponent(url)}`;
+// The default gateway route folds a lightning L402 challenge regardless of the
+// upstream's protocol (x402 or MPP - verified: an MPP/Tempo upstream wrapped
+// this way returns an L402 challenge with rail "mpp-tempo"), so every bridged
+// service uses the same plain path. The gateway's /mpp-* endpoints select a
+// different *inbound* rail and aren't needed when paying over lightning.
+function bridgeUrl(url: string): string {
+  return `${L402_SPACE_BRIDGE}${encodeURIComponent(url)}`;
 }
 
 // The bridge can only settle upstreams on the rails it has funded wallets for -
@@ -139,7 +138,7 @@ export async function discover(params: DiscoverParams) {
       // bridge-funded rail is wrapped so fetch pays it over lightning.
       url: isLightningNative(s.protocol, s.payment_network)
         ? s.url
-        : bridgeUrl(s.url, s.protocol),
+        : bridgeUrl(s.url),
       protocol: s.protocol,
       payment_network: s.payment_network,
       price_sats: s.price_sats,
