@@ -6,6 +6,67 @@ export interface DiscoverParams {
   limit?: number;
 }
 
+// The l402.space bridge settles a 402-gated upstream on our behalf and charges
+// us over lightning, so a lightning wallet can pay endpoints it couldn't settle
+// natively (e.g. USDC-only x402 on Base). We wrap bridgeable discover results in
+// the bridge URL up front so the URL a caller fetches is explicit - `fetch` pays
+// it over lightning, with no hidden per-request redirection.
+const L402_SPACE_BRIDGE = "https://l402.space/";
+
+// The default gateway route folds a lightning L402 challenge regardless of the
+// upstream's protocol (x402 or MPP - verified: an MPP/Tempo upstream wrapped
+// this way returns an L402 challenge with rail "mpp-tempo"), so every bridged
+// service uses the same plain path. The gateway's /mpp-* endpoints select a
+// different *inbound* rail and aren't needed when paying over lightning.
+function bridgeUrl(url: string): string {
+  return `${L402_SPACE_BRIDGE}${encodeURIComponent(url)}`;
+}
+
+// The bridge can only settle upstreams on the rails it has funded wallets for -
+// l402.space/api/info reports these as "base", "solana", "tempo", "lightning".
+// "lightning" is handled as native (paid directly), so these are the extra
+// rails the bridge unlocks. Assets follow the rail (USDC on base/solana, TIP-20
+// on tempo). Rails outside this set (Stellar, Polygon, Stripe, testnets, ...)
+// aren't payable from a lightning wallet at all - we leave those unwrapped.
+const BRIDGE_FUNDED_NETWORKS = new Set(["base", "solana", "tempo"]);
+
+// The index reports some rails as CAIP-2 chain ids; normalize the ones that
+// map onto rails we handle (eip155:8453 is Base mainnet; the bip122 id is
+// Bitcoin mainnet, which lightning-native x402 challenges use - e.g.
+// x402.albylabs.com - and must stay unwrapped, not bridged). Testnets like
+// Base Sepolia (eip155:84532 / "Base Sepolia") intentionally don't match.
+const NETWORK_ALIASES: Record<string, string> = {
+  "eip155:8453": "base",
+  "bip122:000000000019d6689c085ae165831e93": "lightning",
+};
+
+// payment_network can list several rails, e.g. "Base, Solana".
+function paymentRails(paymentNetwork: string | null): string[] {
+  if (!paymentNetwork) return [];
+  return paymentNetwork.split(",").map((rail) => {
+    const normalized = rail.trim().toLowerCase();
+    return NETWORK_ALIASES[normalized] ?? normalized;
+  });
+}
+
+// L402 is lightning by definition (native even when the index reports no
+// network); x402/MPP are rail-agnostic and only native when their rail is
+// Lightning.
+function isLightningNative(
+  protocol: string,
+  paymentNetwork: string | null,
+): boolean {
+  return (
+    protocol === "L402" || paymentRails(paymentNetwork).includes("lightning")
+  );
+}
+
+function isBridgeable(paymentNetwork: string | null): boolean {
+  return paymentRails(paymentNetwork).some((rail) =>
+    BRIDGE_FUNDED_NETWORKS.has(rail),
+  );
+}
+
 export async function discover(params: DiscoverParams) {
   const url = new URL("https://402index.io/api/v1/services");
   const requestedLimit = params.limit ?? 10;
@@ -15,9 +76,16 @@ export async function discover(params: DiscoverParams) {
   if (params.health) url.searchParams.set("health", params.health);
   if (params.sort) url.searchParams.set("sort", params.sort);
 
-  // Filter to BTC (lightning) services server-side
-  url.searchParams.set("payment_asset", "BTC");
-  url.searchParams.set("limit", String(requestedLimit));
+  // We return services across all protocols (L402, x402, MPP) but drop any the
+  // wallet can't reach (rails the bridge doesn't fund), so every result is
+  // payable in sats via fetch. The index can't filter by rail server-side
+  // (only by payment_asset, which can't tell USDC-on-Base apart from
+  // USDC-on-Stellar), so we filter below and over-fetch a margin to still
+  // return up to requestedLimit payable results. A floor of 50 keeps small
+  // requests from starving the filter (a page of 6 can easily be all
+  // unpayable rails); the index caps a page at 200.
+  const fetchLimit = Math.min(200, Math.max(50, requestedLimit * 2));
+  url.searchParams.set("limit", String(fetchLimit));
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 5000);
@@ -46,7 +114,7 @@ export async function discover(params: DiscoverParams) {
       protocol: string;
       price_sats: number | null;
       price_usd: number | null;
-      payment_network: string;
+      payment_network: string | null;
       category: string;
       provider: string;
       health_status: string;
@@ -59,12 +127,23 @@ export async function discover(params: DiscoverParams) {
     offset: number;
   };
 
-  return {
-    services: data.services.map((s) => ({
+  const payable = data.services
+    .filter(
+      (s) =>
+        isLightningNative(s.protocol, s.payment_network) ||
+        isBridgeable(s.payment_network),
+    )
+    .slice(0, requestedLimit)
+    .map((s) => ({
       name: s.name,
       description: s.description,
-      url: s.url,
+      // Everything here is payable: native lightning keeps its own URL, a
+      // bridge-funded rail is wrapped so fetch pays it over lightning.
+      url: isLightningNative(s.protocol, s.payment_network)
+        ? s.url
+        : bridgeUrl(s.url),
       protocol: s.protocol,
+      payment_network: s.payment_network,
       price_sats: s.price_sats,
       price_usd: s.price_usd,
       category: s.category,
@@ -73,7 +152,13 @@ export async function discover(params: DiscoverParams) {
       reliability_score: s.reliability_score,
       latency_p50_ms: s.latency_p50_ms,
       http_method: s.http_method,
-    })),
+    }));
+
+  return {
+    services: payable,
+    // total is the index's match count for this query, so the caller knows the
+    // corpus is larger than the returned page - not the number of services we
+    // filtered/sliced into `services`.
     total: data.total,
   };
 }
