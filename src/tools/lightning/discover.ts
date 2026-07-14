@@ -42,7 +42,8 @@ const NETWORK_ALIASES: Record<string, string> = {
 
 // payment_network can list several rails, e.g. "Base, Solana".
 function paymentRails(paymentNetwork: string | null): string[] {
-  return (paymentNetwork ?? "").split(",").map((rail) => {
+  if (!paymentNetwork) return [];
+  return paymentNetwork.split(",").map((rail) => {
     const normalized = rail.trim().toLowerCase();
     return NETWORK_ALIASES[normalized] ?? normalized;
   });
@@ -80,8 +81,10 @@ export async function discover(params: DiscoverParams) {
   // payable in sats via fetch. The index can't filter by rail server-side
   // (only by payment_asset, which can't tell USDC-on-Base apart from
   // USDC-on-Stellar), so we filter below and over-fetch a margin to still
-  // return up to requestedLimit payable results. The index caps a page at 200.
-  const fetchLimit = Math.min(200, requestedLimit * 2);
+  // return up to requestedLimit payable results. A floor of 50 keeps small
+  // requests from starving the filter (a page of 6 can easily be all
+  // unpayable rails); the index caps a page at 200.
+  const fetchLimit = Math.min(200, Math.max(50, requestedLimit * 2));
   url.searchParams.set("limit", String(fetchLimit));
 
   const controller = new AbortController();
