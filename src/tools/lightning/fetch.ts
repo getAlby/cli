@@ -2,6 +2,7 @@ import {
   fetch402 as fetch402Lib,
   type PaymentCredentials,
 } from "@getalby/lightning-tools/402";
+import { Invoice } from "@getalby/lightning-tools";
 import { NWCClient } from "@getalby/sdk";
 
 const DEFAULT_MAX_AMOUNT_SATS = 5000;
@@ -20,7 +21,7 @@ export interface Fetch402Params {
   credentials?: PaymentCredentials;
 }
 
-export async function fetch402(client: NWCClient, params: Fetch402Params) {
+function buildRequestOptions(params: Fetch402Params): RequestInit {
   const method = params.method?.toUpperCase();
   const requestOptions: RequestInit = {
     method,
@@ -43,6 +44,11 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     requestOptions.headers = params.headers;
   }
 
+  return requestOptions;
+}
+
+export async function fetch402(client: NWCClient, params: Fetch402Params) {
+  const requestOptions = buildRequestOptions(params);
   const maxAmountSats = params.maxAmountSats ?? DEFAULT_MAX_AMOUNT_SATS;
 
   const result = await fetch402Lib(params.url, requestOptions, {
@@ -67,4 +73,89 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     // was involved (e.g. an already-open resource).
     payment: result.payment,
   };
+}
+
+export interface DryRun402Result {
+  url: string;
+  status: number;
+  payment_required: boolean;
+  /** Present when the 402 challenge offers a lightning invoice. */
+  amount_in_sats?: number;
+  description?: string | null;
+  /** The raw challenge, for protocols/rails we can't price in sats. */
+  challenge?: string;
+}
+
+const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
+
+// Find the lightning invoice a 402 challenge offers, wherever the protocol
+// puts it: L402 and MPP carry it in WWW-Authenticate (invoice="lnbc...");
+// lightning-native x402 embeds it in the base64 Payment-Required header (or
+// the JSON body) as extra.invoice.
+function extractLightningInvoice(
+  response: Response,
+  bodyText: string,
+): string | null {
+  const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
+  const headerMatch = wwwAuthenticate.match(
+    new RegExp(`invoice="(${BOLT11_PATTERN.source})"`, "i"),
+  );
+  if (headerMatch) return headerMatch[1];
+
+  const paymentRequired = response.headers.get("payment-required");
+  if (paymentRequired) {
+    try {
+      const decoded = Buffer.from(paymentRequired, "base64").toString("utf-8");
+      const match = decoded.match(BOLT11_PATTERN);
+      if (match) return match[0];
+    } catch {
+      // Not base64 - fall through to the body.
+    }
+  }
+
+  return bodyText.match(BOLT11_PATTERN)?.[0] ?? null;
+}
+
+/**
+ * Preview what a paid endpoint costs without paying: send the request unpaid
+ * and report the 402 challenge. Prices on 402index.io can be missing, stale,
+ * or dynamic - the challenge is the authoritative price at request time. Needs
+ * no wallet.
+ */
+export async function dryRun402(params: Fetch402Params) {
+  const response = await fetch(params.url, buildRequestOptions(params));
+  const bodyText = await response.text();
+
+  if (response.status !== 402) {
+    return {
+      url: params.url,
+      status: response.status,
+      payment_required: false,
+    } satisfies DryRun402Result;
+  }
+
+  const invoice = extractLightningInvoice(response, bodyText);
+  if (invoice) {
+    const { satoshi, description } = new Invoice({ pr: invoice });
+    return {
+      url: params.url,
+      status: response.status,
+      payment_required: true,
+      amount_in_sats: satoshi,
+      description,
+    } satisfies DryRun402Result;
+  }
+
+  // No lightning invoice offered (e.g. USDC-only x402 hit directly instead of
+  // through the l402.space bridge) - surface the raw challenge so the caller
+  // can still see the terms.
+  return {
+    url: params.url,
+    status: response.status,
+    payment_required: true,
+    challenge:
+      response.headers.get("www-authenticate") ??
+      response.headers.get("payment-required") ??
+      bodyText.slice(0, 2000),
+  } satisfies DryRun402Result;
 }

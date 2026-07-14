@@ -1,5 +1,5 @@
 import { Command, InvalidArgumentError } from "commander";
-import { fetch402 } from "../tools/lightning/fetch.js";
+import { dryRun402, fetch402 } from "../tools/lightning/fetch.js";
 import { getClient, handleError, output } from "../utils.js";
 import { classifyRail } from "../amount.js";
 
@@ -68,6 +68,13 @@ export function registerFetch402Command(program: Command) {
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
+      "--dry-run",
+      "Preview the price without paying: sends the request unpaid and reports " +
+        "the 402 challenge (price in sats when a lightning invoice is offered). " +
+        "Needs no wallet. Prices listed by directories can be stale or dynamic - " +
+        "this is the endpoint's actual price right now.",
+    )
+    .option(
       "--max-amount <amount>",
       "Maximum amount to auto-pay per request. Aborts if the endpoint requests more. " +
         "When set, requires --currency BTC --unit sats --network lightning. (default: 5000 sats)",
@@ -102,6 +109,29 @@ export function registerFetch402Command(program: Command) {
     )
     .action(async (url, options) => {
       await handleError(async () => {
+        // A dry run never pays, so the payment flags are meaningless with it.
+        if (options.dryRun) {
+          if (
+            options.maxAmount !== undefined ||
+            options.currency ||
+            options.unit ||
+            options.network ||
+            options.credentials
+          ) {
+            throw new Error(
+              "--dry-run never pays; drop --max-amount/--currency/--unit/--network/--credentials",
+            );
+          }
+          const result = await dryRun402({
+            url: url,
+            method: options.method,
+            body: options.body,
+            headers: options.headers ? JSON.parse(options.headers) : undefined,
+          });
+          output(result);
+          return;
+        }
+
         // A cap must state its denomination, like every other amount. For now
         // the only supported rail is BTC/sats over lightning — the cap is
         // inherently a sats spend limit — but it goes through the shared
