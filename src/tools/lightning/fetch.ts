@@ -1,7 +1,6 @@
 import {
-  Fetch402PaymentError,
+  Fetch402InterruptedError,
   fetch402 as fetch402Lib,
-  getInvoiceAmount,
   type PaymentInfo,
   type PaymentCredentials,
   type PendingPayment,
@@ -71,7 +70,7 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
       resume: params.resume,
     });
   } catch (error) {
-    if (isFetch402PaymentError(error)) {
+    if (isFetch402InterruptedError(error)) {
       throw toRecoveryError(error);
     }
     throw error;
@@ -102,7 +101,7 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
 }
 
 /**
- * Convert the library's Fetch402PaymentError into a structured CLI error.
+ * Convert the library's Fetch402InterruptedError into a structured CLI error.
  *
  * A payment was attempted but the flow failed before a response was obtained.
  * The CLI deliberately does NOT recover on its own (no wallet polling, no
@@ -111,18 +110,19 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
  * the error output carries everything the caller needs to recover without ever
  * paying the same invoice twice.
  */
-function toRecoveryError(error: Fetch402PaymentError): DetailedError {
+function toRecoveryError(error: Fetch402InterruptedError): DetailedError {
   if (error.paid && error.credentials) {
     // The invoice was paid but the request after it failed (e.g. a network
     // error). The credential is already built - a retry must reuse it. The
     // error doesn't carry the library's PaymentInfo, so rebuild the same shape
-    // from what it does carry (routing fees were lost with the response).
+    // from what it does carry.
     return new DetailedError(
       `payment succeeded but the request failed: ${errorMessage(error.cause ?? error)}`,
       paidRecoveryDetails(
         {
           paid: true,
-          amountSat: getInvoiceAmount(error.invoice),
+          amountSat: error.amountSat,
+          feesPaidMsat: error.feesPaidMsat,
           preimage: error.preimage,
           credentials: error.credentials,
         },
@@ -173,12 +173,12 @@ function paidRecoveryDetails(payment: PaymentInfo, paymentHash?: string) {
 
 // The error normally arrives via instanceof, but match on `name` too so a
 // serialized/re-thrown copy (the class documents this) is still recognized.
-function isFetch402PaymentError(
+function isFetch402InterruptedError(
   error: unknown,
-): error is Fetch402PaymentError {
+): error is Fetch402InterruptedError {
   return (
-    error instanceof Fetch402PaymentError ||
-    (error instanceof Error && error.name === "Fetch402PaymentError")
+    error instanceof Fetch402InterruptedError ||
+    (error instanceof Error && error.name === "Fetch402InterruptedError")
   );
 }
 

@@ -27,7 +27,9 @@ function l402Response() {
 
 function makeClient(overrides: Record<string, unknown> = {}): NWCClient {
   return {
-    payInvoice: vi.fn().mockResolvedValue({ preimage: PREIMAGE }),
+    payInvoice: vi
+      .fn()
+      .mockResolvedValue({ preimage: PREIMAGE, fees_paid: 3000 }),
     ...overrides,
   } as unknown as NWCClient;
 }
@@ -94,6 +96,7 @@ describe("fetch 402 payment recovery", () => {
       payment: {
         paid: true,
         amountSat: 402,
+        feesPaidMsat: 3000,
         preimage: PREIMAGE,
         credentials: {
           header: "Authorization",
@@ -127,6 +130,7 @@ describe("fetch 402 payment recovery", () => {
       payment: {
         paid: true,
         amountSat: 402,
+        feesPaidMsat: 3000,
         preimage: PREIMAGE,
         credentials: {
           header: "Authorization",
