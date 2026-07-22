@@ -5,6 +5,7 @@ import {
   type PaymentCredentials,
   type PendingPayment,
 } from "@getalby/lightning-tools/402";
+import { Invoice } from "@getalby/lightning-tools";
 import { NWCClient } from "@getalby/sdk";
 import { DetailedError } from "../../utils.js";
 
@@ -36,7 +37,7 @@ export interface Fetch402Params {
   resume?: Fetch402Resume;
 }
 
-export async function fetch402(client: NWCClient, params: Fetch402Params) {
+function buildRequestOptions(params: Fetch402Params): RequestInit {
   const method = params.method?.toUpperCase();
   const requestOptions: RequestInit = {
     method,
@@ -59,6 +60,11 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     requestOptions.headers = params.headers;
   }
 
+  return requestOptions;
+}
+
+export async function fetch402(client: NWCClient, params: Fetch402Params) {
+  const requestOptions = buildRequestOptions(params);
   const maxAmountSats = params.maxAmountSats ?? DEFAULT_MAX_AMOUNT_SATS;
 
   let result;
@@ -98,6 +104,95 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     // no 402 payment was involved (e.g. an already-open resource).
     payment: result.payment,
   };
+}
+
+export interface DryRun402Result {
+  url: string;
+  status: number;
+  payment_required: boolean;
+  /** Present when the 402 challenge offers a lightning invoice. */
+  amount_in_sats?: number;
+  description?: string | null;
+  /** Present when the challenge offers no lightning invoice. */
+  message?: string;
+}
+
+const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
+
+// Find the lightning invoice a 402 challenge offers, wherever the protocol
+// puts it: L402 and MPP carry it in WWW-Authenticate (invoice="lnbc...");
+// lightning-native x402 embeds it in the base64 Payment-Required header (or
+// the JSON body) as extra.invoice.
+function extractLightningInvoice(
+  response: Response,
+  bodyText: string,
+): string | null {
+  const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
+  const headerMatch = wwwAuthenticate.match(
+    new RegExp(`invoice="(${BOLT11_PATTERN.source})"`, "i"),
+  );
+  if (headerMatch) return headerMatch[1];
+
+  const paymentRequired = response.headers.get("payment-required");
+  if (paymentRequired) {
+    try {
+      const decoded = Buffer.from(paymentRequired, "base64").toString("utf-8");
+      const match = decoded.match(BOLT11_PATTERN);
+      if (match) return match[0];
+    } catch {
+      // Not base64 - fall through to the body.
+    }
+  }
+
+  return bodyText.match(BOLT11_PATTERN)?.[0] ?? null;
+}
+
+/**
+ * Preview what a paid endpoint costs without paying: send the request unpaid
+ * and report the 402 challenge. Prices on 402index.io can be missing, stale,
+ * or dynamic - the challenge is the authoritative price at request time. Needs
+ * no wallet.
+ */
+export async function dryRun402(params: Fetch402Params) {
+  const response = await fetch(params.url, buildRequestOptions(params));
+  const bodyText = await response.text();
+
+  if (response.status !== 402) {
+    return {
+      url: params.url,
+      status: response.status,
+      payment_required: false,
+    } satisfies DryRun402Result;
+  }
+
+  const invoice = extractLightningInvoice(response, bodyText);
+  if (invoice) {
+    // The pattern can match invoice-looking garbage; a challenge whose
+    // "invoice" doesn't decode offers no usable invoice - fall through.
+    try {
+      const { satoshi, description } = new Invoice({ pr: invoice });
+      return {
+        url: params.url,
+        status: response.status,
+        payment_required: true,
+        amount_in_sats: satoshi,
+        description,
+      } satisfies DryRun402Result;
+    } catch {}
+  }
+
+  // No lightning invoice offered (e.g. USDC-only x402) - this CLI pays
+  // lightning only, so point at the l402.space bridge, which settles the
+  // upstream and charges over lightning.
+  return {
+    url: params.url,
+    status: response.status,
+    payment_required: true,
+    message:
+      "no lightning invoice found in the 402 challenge - try fetching " +
+      "through the l402.space bridge instead: " +
+      `https://l402.space/${encodeURIComponent(params.url)}`,
+  } satisfies DryRun402Result;
 }
 
 /**
