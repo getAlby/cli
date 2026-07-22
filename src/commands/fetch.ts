@@ -158,20 +158,8 @@ export function registerFetch402Command(program: Command) {
     )
     .action(async (url, options) => {
       await handleError(async () => {
-        // A dry run never pays, so the payment flags are meaningless with it.
+        // A dry run never pays, so the payment flags are simply ignored.
         if (options.dryRun) {
-          if (
-            options.maxAmount !== undefined ||
-            options.currency ||
-            options.unit ||
-            options.network ||
-            options.credentials ||
-            options.resume
-          ) {
-            throw new Error(
-              "--dry-run never pays; drop --max-amount/--currency/--unit/--network/--credentials/--resume",
-            );
-          }
           const result = await dryRun402({
             url: url,
             method: options.method,
