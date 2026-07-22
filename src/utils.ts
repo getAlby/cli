@@ -308,14 +308,34 @@ export function output(data: unknown) {
   console.log(JSON.stringify(data, null, 2));
 }
 
+/**
+ * An error carrying structured data to include in the JSON error output
+ * alongside the message - e.g. machine-readable payment recovery info so the
+ * calling agent can resume an interrupted 402 payment instead of re-paying.
+ * The details' own keys appear at the top level of the output, next to
+ * `error`, so the thrower names them (e.g. `paymentRecovery`).
+ */
+export class DetailedError extends Error {
+  constructor(
+    message: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+}
+
 export async function handleError(fn: () => Promise<void>) {
   try {
     await fn();
     process.exit(0);
   } catch (error) {
+    const details = error instanceof DetailedError ? error.details : undefined;
     console.error(
       JSON.stringify(
-        { error: error instanceof Error ? error.message : String(error) },
+        {
+          error: error instanceof Error ? error.message : String(error),
+          ...details,
+        },
         null,
         2,
       ),

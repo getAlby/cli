@@ -1,5 +1,5 @@
 import { Command, InvalidArgumentError } from "commander";
-import { fetch402 } from "../tools/lightning/fetch.js";
+import { fetch402, type Fetch402Resume } from "../tools/lightning/fetch.js";
 import { getClient, handleError, output } from "../utils.js";
 import { classifyRail } from "../amount.js";
 
@@ -57,6 +57,36 @@ function parseCredentials(value: string): { header: string; value: string } {
   return { header, value: headerValue };
 }
 
+/**
+ * Parse and validate the `--resume` JSON: the `pendingPayment` object from a
+ * previous fetch's payment-recovery error plus the preimage recovered via
+ * lookup-invoice. `pendingPayment` is opaque to the CLI (the library builds
+ * the credential from it), so only its shape is checked here.
+ */
+function parseResume(value: string): Fetch402Resume {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new InvalidArgumentError(
+      "--resume must be valid JSON (e.g. '{\"pendingPayment\":{...},\"preimage\":\"...\"}')",
+    );
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof (parsed as Record<string, unknown>).pendingPayment !== "object" ||
+    (parsed as Record<string, unknown>).pendingPayment === null ||
+    typeof (parsed as Record<string, unknown>).preimage !== "string" ||
+    !(parsed as Record<string, unknown>).preimage
+  ) {
+    throw new InvalidArgumentError(
+      '--resume must be a JSON object with a "pendingPayment" object and a non-empty string "preimage"',
+    );
+  }
+  return parsed as Fetch402Resume;
+}
+
 export function registerFetch402Command(program: Command) {
   program
     .command("fetch")
@@ -92,13 +122,28 @@ export function registerFetch402Command(program: Command) {
         "authorized with it and never pays again — use it to authorize " +
         "follow-up requests (e.g. polling) without re-paying.",
     )
+    .option(
+      "--resume <json>",
+      "Resume a payment interrupted before its preimage was known " +
+        '(JSON: {"pendingPayment":{...},"preimage":"..."}). Use the ' +
+        "pendingPayment from a previous fetch's paymentRecovery error " +
+        "together with the preimage recovered via lookup-invoice. The " +
+        "request is authorized with the rebuilt credential and never pays " +
+        "again.",
+    )
     .addHelpText(
       "after",
       "\nExample:\n" +
         '  $ npx @getalby/cli fetch "https://example.com/api" --max-amount 1000 --currency BTC --unit sats --network lightning\n' +
-        "\nA successful response includes a `payment` object with the fees paid and a\n" +
-        "reusable `credentials` value. Reuse it to avoid paying again:\n" +
-        '  $ npx @getalby/cli fetch "https://example.com/api" --credentials \'{"header":"Authorization","value":"L402 ..."}\'\n',
+        "\nA successful response includes a `payment` object with the amount paid\n" +
+        "(amountSat), routing fees (feesPaidMsat, in millisatoshis) and a reusable\n" +
+        "`credentials` value. Reuse it to avoid paying again:\n" +
+        '  $ npx @getalby/cli fetch "https://example.com/api" --credentials \'{"header":"Authorization","value":"L402 ..."}\'\n' +
+        "\nIf a payment is interrupted (e.g. a wallet timeout), the error output includes\n" +
+        "a `paymentRecovery` object with the payment hash and everything needed to\n" +
+        "recover - follow its instructions (check lookup-invoice, then re-run with\n" +
+        "--resume or --credentials) instead of retrying blindly, so the same invoice\n" +
+        "is never paid twice.\n",
     )
     .action(async (url, options) => {
       await handleError(async () => {
@@ -124,6 +169,14 @@ export function registerFetch402Command(program: Command) {
           );
         }
 
+        if (options.credentials && options.resume) {
+          throw new Error(
+            "--credentials and --resume are mutually exclusive - use " +
+              "--credentials to reuse a completed payment's credential, or " +
+              "--resume to complete an interrupted one",
+          );
+        }
+
         const client = await getClient(program);
         const result = await fetch402(client, {
           url: url,
@@ -136,6 +189,7 @@ export function registerFetch402Command(program: Command) {
           credentials: options.credentials
             ? parseCredentials(options.credentials)
             : undefined,
+          resume: options.resume ? parseResume(options.resume) : undefined,
         });
         output(result);
       });
