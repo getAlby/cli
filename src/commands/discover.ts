@@ -10,14 +10,10 @@ export function registerDiscoverCommand(program: Command) {
         "All are payable in sats with the fetch command.",
     )
     .option("-q, --query <text>", "Search query")
-    .option(
-      "-p, --protocol <protocol>",
-      "Filter by protocol (L402, x402, MPP)",
-    )
+    .option("-p, --protocol <protocol>", "Filter by protocol (L402, x402, MPP)")
     .option(
       "--health <status>",
       "Filter by health (healthy, degraded, down, unknown)",
-      "healthy",
     )
     .option(
       "-s, --sort <field>",
