@@ -167,14 +167,18 @@ export async function dryRun402(params: Fetch402Params) {
 
   const invoice = extractLightningInvoice(response, bodyText);
   if (invoice) {
-    const { satoshi, description } = new Invoice({ pr: invoice });
-    return {
-      url: params.url,
-      status: response.status,
-      payment_required: true,
-      amount_in_sats: satoshi,
-      description,
-    } satisfies DryRun402Result;
+    // The pattern can match invoice-looking garbage; a challenge whose
+    // "invoice" doesn't decode offers no usable invoice - fall through.
+    try {
+      const { satoshi, description } = new Invoice({ pr: invoice });
+      return {
+        url: params.url,
+        status: response.status,
+        payment_required: true,
+        amount_in_sats: satoshi,
+        description,
+      } satisfies DryRun402Result;
+    } catch {}
   }
 
   // No lightning invoice offered (e.g. USDC-only x402) - this CLI pays

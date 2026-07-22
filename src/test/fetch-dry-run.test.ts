@@ -76,6 +76,18 @@ describe("fetch --dry-run price preview", () => {
     );
   });
 
+  test("falls back to the bridge suggestion when the invoice doesn't decode", async () => {
+    stub402({
+      "www-authenticate": 'L402 token="abc", invoice="lnbc1notarealinvoice00"',
+    });
+
+    const result = await dryRun402({ url: "https://broken.example/api" });
+
+    expect(result.payment_required).toBe(true);
+    expect(result.amount_in_sats).toBeUndefined();
+    expect(result.message).toContain("no lightning invoice found");
+  });
+
   test("reports payment_required false for a non-402 response", async () => {
     vi.stubGlobal(
       "fetch",
