@@ -113,8 +113,8 @@ export interface DryRun402Result {
   /** Present when the 402 challenge offers a lightning invoice. */
   amount_in_sats?: number;
   description?: string | null;
-  /** The raw challenge, for protocols/rails we can't price in sats. */
-  challenge?: string;
+  /** Present when the challenge offers no lightning invoice. */
+  message?: string;
 }
 
 const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
@@ -177,17 +177,17 @@ export async function dryRun402(params: Fetch402Params) {
     } satisfies DryRun402Result;
   }
 
-  // No lightning invoice offered (e.g. USDC-only x402 hit directly instead of
-  // through the l402.space bridge) - surface the raw challenge so the caller
-  // can still see the terms.
+  // No lightning invoice offered (e.g. USDC-only x402) - this CLI pays
+  // lightning only, so point at the l402.space bridge, which settles the
+  // upstream and charges over lightning.
   return {
     url: params.url,
     status: response.status,
     payment_required: true,
-    challenge:
-      response.headers.get("www-authenticate") ??
-      response.headers.get("payment-required") ??
-      bodyText.slice(0, 2000),
+    message:
+      "no lightning invoice found in the 402 challenge - try fetching " +
+      "through the l402.space bridge instead: " +
+      `https://l402.space/${encodeURIComponent(params.url)}`,
   } satisfies DryRun402Result;
 }
 

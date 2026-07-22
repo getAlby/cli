@@ -61,7 +61,7 @@ describe("fetch --dry-run price preview", () => {
     expect(result.amount_in_sats).toBe(100);
   });
 
-  test("surfaces the raw challenge when no lightning invoice is offered", async () => {
+  test("suggests the l402.space bridge when no lightning invoice is offered", async () => {
     stub402({
       "www-authenticate": 'Payment realm="svc", method="tempo", intent="charge"',
     });
@@ -70,7 +70,10 @@ describe("fetch --dry-run price preview", () => {
 
     expect(result.payment_required).toBe(true);
     expect(result.amount_in_sats).toBeUndefined();
-    expect(result.challenge).toContain('method="tempo"');
+    expect(result.message).toContain("no lightning invoice found");
+    expect(result.message).toContain(
+      "https://l402.space/https%3A%2F%2Ftempo.example%2Fapi",
+    );
   });
 
   test("reports payment_required false for a non-402 response", async () => {
