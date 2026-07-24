@@ -45,7 +45,7 @@ program
       "    $ npx @getalby/cli pay alice@getalby.com --amount 5 --currency USD --network lightning\n" +
       '    $ npx @getalby/cli receive --amount 2100 --currency BTC --unit sats --network lightning --description "Coffee"',
   )
-  .version("0.10.0")
+  .version("0.10.1")
   .configureHelp({ showGlobalOptions: true })
   .option(
     "-w, --wallet-name <name>",
