@@ -73,7 +73,9 @@ describe("fetch binary responses", () => {
   });
 
   test("returns an unlabeled body inline when it decodes cleanly as UTF-8", async () => {
-    stubResponse('{"ok":true}', { "content-type": "application/octet-stream" });
+    // Bytes without a content-type header: a string body would get an
+    // automatic text/plain and never reach the sniffing path.
+    stubResponse(new TextEncoder().encode('{"ok":true}'));
 
     const result = await fetch402(client, { url: URL });
 
@@ -91,5 +93,31 @@ describe("fetch binary responses", () => {
     expect(result.content).toBeUndefined();
     expect(result.outputPath).toBe(outputPath);
     expect(readFileSync(outputPath, "utf-8")).toBe('{"ok":true}');
+  });
+
+  test("falls back to base64 inline when a binary body cannot be saved", async () => {
+    // A failed write must not throw away the (possibly paid) response.
+    stubResponse(WAV_BYTES, { "content-type": "audio/wav" });
+    const outputPath = join(tmpdir(), "no-such-dir", "out.wav");
+
+    const result = await fetch402(client, { url: URL, outputPath });
+
+    expect(result.outputPath).toBeUndefined();
+    expect(result.writeError).toContain("ENOENT");
+    expect(result.contentType).toBe("audio/wav");
+    expect(
+      new Uint8Array(Buffer.from(result.contentBase64!, "base64")),
+    ).toEqual(WAV_BYTES);
+  });
+
+  test("falls back to inline text when a text body cannot be saved", async () => {
+    stubResponse('{"ok":true}', { "content-type": "application/json" });
+    const outputPath = join(tmpdir(), "no-such-dir", "out.json");
+
+    const result = await fetch402(client, { url: URL, outputPath });
+
+    expect(result.outputPath).toBeUndefined();
+    expect(result.writeError).toContain("ENOENT");
+    expect(result.content).toBe('{"ok":true}');
   });
 });

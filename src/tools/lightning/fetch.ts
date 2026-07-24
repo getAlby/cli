@@ -51,12 +51,16 @@ export interface Fetch402Params {
 export interface Fetch402Result {
   /** The response body, when it is text and no --output path was given. */
   content?: string;
+  /** The body base64-encoded, when it is binary and saving it failed. */
+  contentBase64?: string;
   /** Path the body was saved to (binary responses, or --output). */
   outputPath?: string;
   /** The response Content-Type, reported alongside `outputPath`. */
   contentType?: string | null;
-  /** Size of the saved body in bytes, reported alongside `outputPath`. */
+  /** Size of the body in bytes, reported when it is not inline text. */
   sizeBytes?: number;
+  /** Why the body could not be saved to a file, when that fell back. */
+  writeError?: string;
   payment?: PaymentInfo;
 }
 
@@ -141,7 +145,25 @@ export async function fetch402(
   const outputPath =
     params.outputPath ??
     join(tmpdir(), `alby-cli-fetch-${randomUUID()}${extensionFor(contentType)}`);
-  writeFileSync(outputPath, bytes);
+  try {
+    writeFileSync(outputPath, bytes);
+  } catch (error) {
+    // A failed write (ENOSPC, an unwritable --output path) after a payment
+    // must not throw away the paid response and its reusable credential -
+    // fall back to returning the body inline, base64-encoded when binary.
+    const writeError = errorMessage(error);
+    const text = decodeText(contentType, bytes);
+    if (text !== null) {
+      return { content: text, writeError, payment };
+    }
+    return {
+      contentBase64: Buffer.from(bytes).toString("base64"),
+      contentType,
+      sizeBytes: bytes.length,
+      writeError,
+      payment,
+    };
+  }
   return { outputPath, contentType, sizeBytes: bytes.length, payment };
 }
 
