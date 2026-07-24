@@ -7,6 +7,10 @@ import {
 } from "@getalby/lightning-tools/402";
 import { Invoice } from "@getalby/lightning-tools";
 import { NWCClient } from "@getalby/sdk";
+import { randomUUID } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DetailedError } from "../../utils.js";
 
 const DEFAULT_MAX_AMOUNT_SATS = 5000;
@@ -35,6 +39,25 @@ export interface Fetch402Params {
    * and NEVER pays again.
    */
   resume?: Fetch402Resume;
+  /**
+   * File path to save the response body to instead of returning it inline.
+   * Binary responses are saved to a temp file even without it; setting it
+   * forces a file (and chooses its location) for any response, so a large body
+   * never has to round-trip through the JSON output.
+   */
+  outputPath?: string;
+}
+
+export interface Fetch402Result {
+  /** The response body, when it is text and no --output path was given. */
+  content?: string;
+  /** Path the body was saved to (binary responses, or --output). */
+  outputPath?: string;
+  /** The response Content-Type, reported alongside `outputPath`. */
+  contentType?: string | null;
+  /** Size of the saved body in bytes, reported alongside `outputPath`. */
+  sizeBytes?: number;
+  payment?: PaymentInfo;
 }
 
 function buildRequestOptions(params: Fetch402Params): RequestInit {
@@ -63,7 +86,10 @@ function buildRequestOptions(params: Fetch402Params): RequestInit {
   return requestOptions;
 }
 
-export async function fetch402(client: NWCClient, params: Fetch402Params) {
+export async function fetch402(
+  client: NWCClient,
+  params: Fetch402Params,
+): Promise<Fetch402Result> {
   const requestOptions = buildRequestOptions(params);
   const maxAmountSats = params.maxAmountSats ?? DEFAULT_MAX_AMOUNT_SATS;
 
@@ -82,28 +108,73 @@ export async function fetch402(client: NWCClient, params: Fetch402Params) {
     throw error;
   }
 
-  const responseContent = await result.text();
   if (!result.ok) {
     // A non-OK response after a payment must not lose the payment metadata -
     // with the credential the request can be retried without paying the same
     // invoice again.
     throw new DetailedError(
-      `fetch returned non-OK status: ${result.status} ${responseContent}`,
+      `fetch returned non-OK status: ${result.status} ${await result.text()}`,
       result.payment?.credentials
         ? paidRecoveryDetails(result.payment)
         : undefined,
     );
   }
 
-  return {
-    content: responseContent,
-    // Payment metadata attached by the 402 helper: whether a payment was made,
-    // the amount (amountSat), routing fees (feesPaidMsat, in millisatoshis),
-    // and the reusable credential. Pass `credentials` back via --credentials
-    // on a follow-up request to authorize it without paying again. Absent when
-    // no 402 payment was involved (e.g. an already-open resource).
-    payment: result.payment,
-  };
+  const bytes = new Uint8Array(await result.arrayBuffer());
+  const contentType = result.headers.get("content-type");
+  // Payment metadata attached by the 402 helper: whether a payment was made,
+  // the amount (amountSat), routing fees (feesPaidMsat, in millisatoshis),
+  // and the reusable credential. Pass `credentials` back via --credentials
+  // on a follow-up request to authorize it without paying again. Absent when
+  // no 402 payment was involved (e.g. an already-open resource).
+  const payment = result.payment;
+
+  if (!params.outputPath) {
+    const text = decodeText(contentType, bytes);
+    if (text !== null) {
+      return { content: text, payment };
+    }
+  }
+
+  // Reading a binary body as text destroys it (every invalid UTF-8 sequence
+  // becomes U+FFFD), so it goes to a file and the output carries the path.
+  const outputPath =
+    params.outputPath ??
+    join(tmpdir(), `alby-cli-fetch-${randomUUID()}${extensionFor(contentType)}`);
+  writeFileSync(outputPath, bytes);
+  return { outputPath, contentType, sizeBytes: bytes.length, payment };
+}
+
+/**
+ * Decode the body for inline `content`, or return null when it is binary:
+ * a declared text content type is decoded as such, and without one the bytes
+ * qualify only when they are strictly valid UTF-8 (e.g. JSON from an API that
+ * mislabels or omits the content type).
+ */
+function decodeText(
+  contentType: string | null,
+  bytes: Uint8Array,
+): string | null {
+  const type = contentType?.split(";")[0].trim().toLowerCase() ?? "";
+  if (
+    type.startsWith("text/") ||
+    /[/+](json|xml)$/.test(type) ||
+    type === "application/x-www-form-urlencoded"
+  ) {
+    return new TextDecoder().decode(bytes);
+  }
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+// Filename extension for a saved binary, from the content type's subtype
+// (audio/wav -> .wav, application/epub+zip -> .epub). Unknown types get .bin.
+function extensionFor(contentType: string | null): string {
+  const subtype = contentType?.split(";")[0].split("/")[1]?.trim().toLowerCase();
+  return subtype ? `.${subtype.split("+")[0]}` : ".bin";
 }
 
 export interface DryRun402Result {

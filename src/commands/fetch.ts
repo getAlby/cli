@@ -102,6 +102,13 @@ export function registerFetch402Command(program: Command) {
     .option("-b, --body <json>", "Request body (JSON string)")
     .option("-H, --headers <json>", "Additional headers (JSON string)")
     .option(
+      "-o, --output <path>",
+      "Save the response body to this file and return the path instead of " +
+        "inline content. Binary responses (audio, images, ...) are saved to a " +
+        "temp file automatically; use this to pick the location, or to keep a " +
+        "large text response out of the JSON output.",
+    )
+    .option(
       "--dry-run",
       "Preview the price without paying: sends the request unpaid and reports " +
         "the 402 challenge (price in sats when a lightning invoice is offered). " +
@@ -146,6 +153,10 @@ export function registerFetch402Command(program: Command) {
       "after",
       "\nExample:\n" +
         '  $ npx @getalby/cli fetch "https://example.com/api" --max-amount 1000 --currency BTC --unit sats --network lightning\n' +
+        "\nText responses are returned inline as `content`. Binary responses (audio,\n" +
+        "images, ...) are saved to a temp file - the output then carries `outputPath`,\n" +
+        "`contentType` and `sizeBytes` instead. Pass -o <path> to choose the file\n" +
+        "location, or to force any response (e.g. a large text body) to a file.\n" +
         "\nA successful response includes a `payment` object with the amount paid\n" +
         "(amountSat), routing fees (feesPaidMsat, in millisatoshis) and a reusable\n" +
         "`credentials` value. Reuse it to avoid paying again:\n" +
@@ -213,6 +224,7 @@ export function registerFetch402Command(program: Command) {
             ? parseCredentials(options.credentials)
             : undefined,
           resume: options.resume ? parseResume(options.resume) : undefined,
+          outputPath: options.output,
         });
         output(result);
       });
