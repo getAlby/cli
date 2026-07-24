@@ -98,5 +98,51 @@ describe("fetch --dry-run price preview", () => {
 
     expect(result.payment_required).toBe(false);
     expect(result.status).toBe(200);
+    // A 2xx dry run is about the price, not the content.
+    expect(result.content).toBeUndefined();
+  });
+
+  test("surfaces the error body of a non-2xx response", async () => {
+    const body = JSON.stringify({
+      error: "No payable option",
+      reason: "upstream price exceeds this gateway's per-request cap",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(body, { status: 502 })),
+    );
+
+    const result = await dryRun402({ url: "https://bridge.example/api" });
+
+    expect(result.payment_required).toBe(false);
+    expect(result.status).toBe(502);
+    expect(result.content).toBe(body);
+    expect(result.content_truncated).toBeUndefined();
+  });
+
+  test("truncates an oversized error body and says so", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(new Response("x".repeat(5000), { status: 500 })),
+    );
+
+    const result = await dryRun402({ url: "https://big.example/api" });
+
+    expect(result.content).toHaveLength(4096);
+    expect(result.content_truncated).toBe(true);
+  });
+
+  test("omits content for an empty error body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+    );
+
+    const result = await dryRun402({ url: "https://empty.example/api" });
+
+    expect(result.status).toBe(404);
+    expect(result.content).toBeUndefined();
   });
 });

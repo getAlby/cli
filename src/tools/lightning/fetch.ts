@@ -116,12 +116,12 @@ export async function fetch402(
     // A non-OK response after a payment must not lose the payment metadata -
     // with the credential the request can be retried without paying the same
     // invoice again.
-    throw new DetailedError(
-      `fetch returned non-OK status: ${result.status} ${await result.text()}`,
-      result.payment?.credentials
+    throw new DetailedError(`fetch returned non-OK status: ${result.status}`, {
+      ...errorBody(await result.text()),
+      ...(result.payment?.credentials
         ? paidRecoveryDetails(result.payment)
-        : undefined,
-    );
+        : {}),
+    });
   }
 
   const bytes = new Uint8Array(await result.arrayBuffer());
@@ -208,6 +208,29 @@ export interface DryRun402Result {
   description?: string | null;
   /** Present when the challenge offers no lightning invoice. */
   message?: string;
+  /** Body of a non-2xx, non-402 response - often the only diagnostic. */
+  content?: string;
+  /** Set when `content` was cut off at the size cap. */
+  content_truncated?: boolean;
+}
+
+const MAX_ERROR_BODY_CHARS = 4096;
+
+/**
+ * An error body is often the only diagnostic (e.g. a gateway explaining
+ * exactly why it refused) - surface it, capped, instead of discarding it.
+ */
+function errorBody(bodyText: string): {
+  content?: string;
+  content_truncated?: boolean;
+} {
+  if (!bodyText) return {};
+  return {
+    content: bodyText.slice(0, MAX_ERROR_BODY_CHARS),
+    ...(bodyText.length > MAX_ERROR_BODY_CHARS
+      ? { content_truncated: true }
+      : {}),
+  };
 }
 
 const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
@@ -246,7 +269,9 @@ function extractLightningInvoice(
  * or dynamic - the challenge is the authoritative price at request time. Needs
  * no wallet.
  */
-export async function dryRun402(params: Fetch402Params) {
+export async function dryRun402(
+  params: Fetch402Params,
+): Promise<DryRun402Result> {
   const response = await fetch(params.url, buildRequestOptions(params));
   const bodyText = await response.text();
 
@@ -255,6 +280,7 @@ export async function dryRun402(params: Fetch402Params) {
       url: params.url,
       status: response.status,
       payment_required: false,
+      ...(response.ok ? {} : errorBody(bodyText)),
     } satisfies DryRun402Result;
   }
 
