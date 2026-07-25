@@ -150,7 +150,9 @@ describe("fetch 402 payment recovery", () => {
     const error = await fetch402(client, { url: URL }).catch((e) => e);
 
     expect(error.message).toContain("non-OK status: 404");
-    expect(error.details).toBeUndefined();
+    // The error body is surfaced (it is often the only diagnostic), but there
+    // is no payment to recover.
+    expect(error.details).toEqual({ content: "not found" });
     expect(client.payInvoice).not.toHaveBeenCalled();
   });
 
