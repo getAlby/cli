@@ -117,7 +117,7 @@ export async function fetch402(
     // with the credential the request can be retried without paying the same
     // invoice again.
     throw new DetailedError(`fetch returned non-OK status: ${result.status}`, {
-      ...errorBody(await result.text()),
+      ...(await readErrorBody(result)),
       ...(result.payment?.credentials
         ? paidRecoveryDetails(result.payment)
         : {}),
@@ -219,15 +219,34 @@ const MAX_ERROR_BODY_CHARS = 4096;
 /**
  * An error body is often the only diagnostic (e.g. a gateway explaining
  * exactly why it refused) - surface it, capped, instead of discarding it.
+ * The body is read through the stream and stops at the cap, so an
+ * arbitrarily large error body is never buffered whole. A failed read
+ * surfaces what was read so far rather than throwing, so the payment
+ * metadata alongside it is never lost.
  */
-function errorBody(bodyText: string): {
+async function readErrorBody(response: Response): Promise<{
   content?: string;
   content_truncated?: boolean;
-} {
-  if (!bodyText) return {};
+}> {
+  if (!response.body) return {};
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  try {
+    while (text.length <= MAX_ERROR_BODY_CHARS) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+  } catch {
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+  if (!text) return {};
   return {
-    content: bodyText.slice(0, MAX_ERROR_BODY_CHARS),
-    ...(bodyText.length > MAX_ERROR_BODY_CHARS
+    content: text.slice(0, MAX_ERROR_BODY_CHARS),
+    ...(text.length > MAX_ERROR_BODY_CHARS
       ? { content_truncated: true }
       : {}),
   };
@@ -235,14 +254,12 @@ function errorBody(bodyText: string): {
 
 const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
 
-// Find the lightning invoice a 402 challenge offers, wherever the protocol
-// puts it: L402 and MPP carry it in WWW-Authenticate (invoice="lnbc...");
-// lightning-native x402 embeds it in the base64 Payment-Required header (or
-// the JSON body) as extra.invoice.
-function extractLightningInvoice(
-  response: Response,
-  bodyText: string,
-): string | null {
+// Find the lightning invoice a 402 challenge offers. Only the headers are
+// checked, matching the pay path in lightning-tools (which never reads the
+// 402 body): L402 and MPP carry the invoice in WWW-Authenticate
+// (invoice="lnbc..."); lightning-native x402 embeds it in the base64
+// Payment-Required header as extra.invoice.
+function extractLightningInvoice(response: Response): string | null {
   const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
   const headerMatch = wwwAuthenticate.match(
     new RegExp(`invoice="(${BOLT11_PATTERN.source})"`, "i"),
@@ -256,11 +273,11 @@ function extractLightningInvoice(
       const match = decoded.match(BOLT11_PATTERN);
       if (match) return match[0];
     } catch {
-      // Not base64 - fall through to the body.
+      // Not base64 - no usable invoice.
     }
   }
 
-  return bodyText.match(BOLT11_PATTERN)?.[0] ?? null;
+  return null;
 }
 
 /**
@@ -273,18 +290,17 @@ export async function dryRun402(
   params: Fetch402Params,
 ): Promise<DryRun402Result> {
   const response = await fetch(params.url, buildRequestOptions(params));
-  const bodyText = await response.text();
 
   if (response.status !== 402) {
     return {
       url: params.url,
       status: response.status,
       payment_required: false,
-      ...(response.ok ? {} : errorBody(bodyText)),
+      ...(response.ok ? {} : await readErrorBody(response)),
     } satisfies DryRun402Result;
   }
 
-  const invoice = extractLightningInvoice(response, bodyText);
+  const invoice = extractLightningInvoice(response);
   if (invoice) {
     // The pattern can match invoice-looking garbage; a challenge whose
     // "invoice" doesn't decode offers no usable invoice - fall through.
