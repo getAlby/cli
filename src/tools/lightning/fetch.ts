@@ -257,8 +257,8 @@ const BOLT11_PATTERN = /ln(?:bc|tb|bcrt|tbs)[0-9a-z]+/i;
 // Find the lightning invoice a 402 challenge offers. Only the headers are
 // checked, matching the pay path in lightning-tools (which never reads the
 // 402 body): L402 and MPP carry the invoice in WWW-Authenticate
-// (invoice="lnbc..."); lightning-native x402 embeds it in the base64
-// Payment-Required header as extra.invoice.
+// (invoice="lnbc..."); x402 `exact` on lightning (`lnbtc` networks) embeds it
+// in the base64 Payment-Required header as extra.invoice.
 function extractLightningInvoice(response: Response): string | null {
   const wwwAuthenticate = response.headers.get("www-authenticate") ?? "";
   const headerMatch = wwwAuthenticate.match(
@@ -269,11 +269,23 @@ function extractLightningInvoice(response: Response): string | null {
   const paymentRequired = response.headers.get("payment-required");
   if (paymentRequired) {
     try {
-      const decoded = Buffer.from(paymentRequired, "base64").toString("utf-8");
-      const match = decoded.match(BOLT11_PATTERN);
-      if (match) return match[0];
+      const decoded = JSON.parse(
+        Buffer.from(paymentRequired, "base64").toString("utf-8"),
+      ) as {
+        accepts?: {
+          scheme?: string;
+          network?: string;
+          extra?: { invoice?: unknown };
+        }[];
+      };
+      const invoice = decoded.accepts?.find(
+        (e) => e?.scheme === "exact" && e.network?.startsWith("lnbtc:"),
+      )?.extra?.invoice;
+      if (typeof invoice === "string" && BOLT11_PATTERN.test(invoice)) {
+        return invoice;
+      }
     } catch {
-      // Not base64 - no usable invoice.
+      // Not base64 JSON - no usable invoice.
     }
   }
 

@@ -46,9 +46,10 @@ describe("fetch --dry-run price preview", () => {
         x402Version: 2,
         accepts: [
           {
-            network: "bip122:000000000019d6689c085ae165831e93",
+            scheme: "exact",
+            network: "lnbtc:000000000019d6689c085ae165831e93",
             asset: "BTC",
-            extra: { paymentMethod: "lightning", invoice: exampleInvoice },
+            extra: { assetTransferMethod: "bolt11", invoice: exampleInvoice },
           },
         ],
       }),
@@ -59,6 +60,27 @@ describe("fetch --dry-run price preview", () => {
 
     expect(result.payment_required).toBe(true);
     expect(result.amount_in_sats).toBe(100);
+  });
+
+  test("ignores invoices in x402 entries that are not exact/lnbtc", async () => {
+    const x402Challenge = Buffer.from(
+      JSON.stringify({
+        x402Version: 2,
+        accepts: [
+          {
+            network: "bip122:000000000019d6689c085ae165831e93",
+            asset: "BTC",
+            extra: { paymentMethod: "lightning", invoice: exampleInvoice },
+          },
+        ],
+      }),
+    ).toString("base64");
+    stub402({ "payment-required": x402Challenge });
+
+    const result = await dryRun402({ url: "https://x402old.example/api" });
+
+    expect(result.payment_required).toBe(true);
+    expect(result.amount_in_sats).toBeUndefined();
   });
 
   test("suggests the l402.space bridge when no lightning invoice is offered", async () => {
