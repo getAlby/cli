@@ -164,12 +164,12 @@ describe("discover l402.space bridge wrapping", () => {
         protocol: "x402",
         payment_network: "Lightning, Base",
       },
-      // ...or when the index reports the rail as the raw Bitcoin CAIP-2 id
-      // (like x402.albylabs.com's own challenge does) instead of "Lightning".
+      // ...or when the index reports the rail as the raw lightning mainnet
+      // CAIP-2 id (as x402 `exact` lightning challenges do) instead of "Lightning".
       {
         url: "https://x402btc.example/api",
         protocol: "x402",
-        payment_network: "bip122:000000000019d6689c085ae165831e93",
+        payment_network: "lnbtc:000000000019d6689c085ae165831e93",
       },
       // MPP is rail-agnostic too: an MPP service on the Lightning rail is paid
       // directly, never bridged.
